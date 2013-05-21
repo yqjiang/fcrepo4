@@ -9,7 +9,9 @@
 
   <artifactId>fcrepo-webapp</artifactId>
   <packaging>war</packaging>
-  <name>fcrepo webapp</name>
+  <name>fcrepo4 Basic Webapp</name>
+  
+  <description>A basic packaging of fcrepo4 modules for deployment in a servlet container.</description>
 
   <properties>
     <!-- integration test properties -->
@@ -72,7 +74,17 @@
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
     </dependency>
-
+    <dependency>
+      <groupId>org.springframework.security.oauth</groupId>
+      <artifactId>spring-security-oauth2</artifactId>
+      <version>1.0.4.RELEASE</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-asm</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
   </dependencies>
 
   <build>

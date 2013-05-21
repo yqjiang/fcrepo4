@@ -9,7 +9,16 @@
     <logger name="org.fcrepo" additivity="false" level="TRACE">
         <appender-ref ref="STDOUT"/>
     </logger>
-    <logger name="org.modeshape" additivity="false" level="INFO">
+    <!--<logger name="org.springframework.beans" additivity="false" level="DEBUG">
+        <appender-ref ref="STDOUT"/>
+    </logger>-->
+    <logger name="org.springframework.security" additivity="false" level="DEBUG">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.modeshape" additivity="false" level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.infinispan" additivity="false" level="WARN">
         <appender-ref ref="STDOUT"/>
     </logger>
     <root additivity="false" level="INFO">

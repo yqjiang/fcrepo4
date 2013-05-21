@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+    xmlns:sec="http://www.springframework.org/schema/security"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+    http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd
+    http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+    http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+    <http entry-point-ref="oauthAuthenticationEntryPoint"
+        xmlns="http://www.springframework.org/schema/security">
+        <anonymous enabled="false"/>
+        <intercept-url pattern="/rest/objects/test:oauth" access="ROLE_USER"/>
+        <custom-filter ref="oauthFilter" before="PRE_AUTH_FILTER"/>
+    </http>
+
+    <oauth:resource-server id="oauthFilter"/>
+
+    <bean id="oauthAuthenticationEntryPoint"
+        class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+        <property name="realmName" value="fedora"/>
+    </bean>
+
+
+
+    <authentication-manager alias="authenticationManager"
+        xmlns="http://www.springframework.org/schema/security">
+        <authentication-provider>
+            <user-service id="userDetailsService">
+                <user name="ajs6f" password="fedora" authorities="ROLE_USER"/>
+            </user-service>
+        </authentication-provider>
+    </authentication-manager>
+
+    <!-- apparently the following stuff has to do with authenticating the identity of
+        OAuth clients for Fedora (as opposed to users) -->
+
+    <bean id="clientAuthenticationEntryPoint"
+        class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+        <property name="realmName" value="fedora/client"/>
+        <property name="typeName" value="Basic"/>
+    </bean>
+
+    <authentication-manager id="clientAuthenticationManager"
+        xmlns="http://www.springframework.org/schema/security">
+        <authentication-provider user-service-ref="clientDetailsUserService"/>
+    </authentication-manager>
+
+    <bean id="clientDetailsUserService"
+        class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
+        <constructor-arg ref="clientDetails"/>
+    </bean>
+
+    <client-details-service id="clientDetails"
+        xmlns="http://www.springframework.org/schema/security/oauth2">
+        <client client-id="ajs6f" authorized-grant-types="authorization_code"/>
+    </client-details-service>
+
+    <!-- other -->
+    <bean id="oauthAccessDeniedHandler"
+        class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler"/>
+
+
+</beans>
