@@ -21,6 +21,9 @@
     <logger name="org.infinispan" additivity="false" level="WARN">
         <appender-ref ref="STDOUT"/>
     </logger>
+    <logger name="org.jgroups" additivity="false" level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </logger>
     <root additivity="false" level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
