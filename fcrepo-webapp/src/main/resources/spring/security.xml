@@ -46,6 +46,7 @@
     <!-- the following stuff has to do with authenticating the identity of
         OAuth clients for Fedora (as opposed to users) -->
 
+
     <bean id="clientAuthenticationEntryPoint"
         class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
         <property name="realmName" value="fedora"/>
@@ -81,7 +82,6 @@
     </authorization-server>
 
     <!-- the following elements support token minting, in some way... -->
-
     <bean id="tokenStore"
         class="org.springframework.security.oauth2.provider.token.InMemoryTokenStore"/>
 
