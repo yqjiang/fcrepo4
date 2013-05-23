@@ -9,35 +9,25 @@
     http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-
-    <http pattern="/oauth/token" create-session="stateless"
-        authentication-manager-ref="clientAuthenticationManager"
-        xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/oauth/token" access="IS_AUTHENTICATED_FULLY"/>
-        <anonymous enabled="true"/>
-        <http-basic entry-point-ref="clientAuthenticationEntryPoint"/>
-    </http>
-
     <http pattern="/rest/**" entry-point-ref="oauthAuthenticationEntryPoint"
         create-session="never"
         xmlns="http://www.springframework.org/schema/security">
         <anonymous enabled="false"/>
-        <intercept-url pattern="/rest/objects/test:oauth" access="ROLE_USER"/>
+        <intercept-url pattern="/rest/objects/oauthGuarded"
+            requires-channel="any" access="ROLE_USER"/>
         <custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER"/>
     </http>
 
     <http disable-url-rewriting="true"
         xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/oauth/**" access="ROLE_USER"/>
-        <intercept-url pattern="/**"
-            access="IS_AUTHENTICATED_ANONYMOUSLY,IS_AUTHENTICATED_FULLY"/>
         <http-basic/>
         <logout/>
         <anonymous/>
     </http>
 
     <oauth:resource-server id="resourceServerFilter" resource-id="fedora"
-        token-services-ref="tokenServices"/>
+        token-services-ref="tokenServices" auth-details-source-ref=""/>
 
     <bean id="oauthAuthenticationEntryPoint"
         class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
@@ -48,17 +38,17 @@
         xmlns="http://www.springframework.org/schema/security">
         <authentication-provider>
             <user-service id="userDetailsService">
-                <user name="ajs6f" password="fedora" authorities="ROLE_USER"/>
+                <user name="fedora" password="fedora" authorities="ROLE_USER"/>
             </user-service>
         </authentication-provider>
     </authentication-manager>
 
     <!-- the following stuff has to do with authenticating the identity of
-        OAuth clients for Fedora (as opposed to users?) -->
+        OAuth clients for Fedora (as opposed to users) -->
 
     <bean id="clientAuthenticationEntryPoint"
         class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
-        <property name="realmName" value="fedora/client"/>
+        <property name="realmName" value="fedora"/>
         <property name="typeName" value="Basic"/>
     </bean>
 
@@ -76,11 +66,12 @@
         xmlns="http://www.springframework.org/schema/security/oauth2">
         <client client-id="fedora"
             authorized-grant-types="password, refresh_token, implicit, client_credentials, authorization_code, web_server"
-            authorities="ROLE_CLIENT, ROLE_TRUSTED_CLIENT"/>
+            authorities="ROLE_USER, ROLE_CLIENT, ROLE_TRUSTED_CLIENT"/>
     </client-details-service>
 
     <authorization-server client-details-service-ref="clientDetails"
-        token-services-ref="tokenServices"
+        token-services-ref="tokenServices" token-endpoint-url="/token"
+        authorization-endpoint-url="/authorize"
         xmlns="http://www.springframework.org/schema/security/oauth2">
         <authorization-code/>
         <implicit/>
@@ -89,12 +80,7 @@
         <password/>
     </authorization-server>
 
-    <!--define an oauth 2 resource for Fedora's trusted client on Fedora -->
-    <oauth:resource id="trusted" client-id="fedora"
-        access-token-uri="http://localhost:8080/rest/oauth/token"/>
-
-
-    <!-- the following two elements support token minting, in some way... -->
+    <!-- the following elements support token minting, in some way... -->
 
     <bean id="tokenStore"
         class="org.springframework.security.oauth2.provider.token.InMemoryTokenStore"/>
@@ -104,7 +90,6 @@
         <property name="tokenStore" ref="tokenStore"/>
         <property name="supportRefreshToken" value="true"/>
         <property name="clientDetailsService" ref="clientDetails"/>
-        <property name="accessTokenValiditySeconds" value="0"/>
     </bean>
 
     <!-- seems to control a 401 page of some kind, or perhaps a 403 page? -->
@@ -121,6 +106,8 @@
     </global-method-security>
     <oauth:expression-handler id="oauthExpressionHandler"/>
 
+    <mvc:annotation-driven/>
 
+    <mvc:default-servlet-handler/>
 
 </beans>
