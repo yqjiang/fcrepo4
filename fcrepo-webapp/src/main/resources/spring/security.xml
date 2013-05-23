@@ -45,8 +45,6 @@
 
     <!-- the following stuff has to do with authenticating the identity of
         OAuth clients for Fedora (as opposed to users) -->
-
-
     <bean id="clientAuthenticationEntryPoint"
         class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
         <property name="realmName" value="fedora"/>
@@ -109,6 +107,5 @@
     <mvc:annotation-driven/>
 
     <mvc:default-servlet-handler/>
-
 
 </beans>
