@@ -27,7 +27,9 @@
     </http>
 
     <oauth:resource-server id="resourceServerFilter" resource-id="fedora"
-        token-services-ref="tokenServices" auth-details-source-ref=""/>
+        token-services-ref="tokenServices"
+        entry-point-ref="oauthAuthenticationEntryPoint"
+        auth-details-source-ref=""/>
 
     <bean id="oauthAuthenticationEntryPoint"
         class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
@@ -63,7 +65,7 @@
 
     <client-details-service id="clientDetails"
         xmlns="http://www.springframework.org/schema/security/oauth2">
-        <client client-id="fedora"
+        <client client-id="fedora" secret="fedora"
             authorized-grant-types="password, refresh_token, implicit, client_credentials, authorization_code, web_server"
             authorities="ROLE_USER, ROLE_CLIENT, ROLE_TRUSTED_CLIENT"/>
     </client-details-service>
@@ -72,10 +74,10 @@
         token-services-ref="tokenServices" token-endpoint-url="/token"
         authorization-endpoint-url="/authorize"
         xmlns="http://www.springframework.org/schema/security/oauth2">
-        <authorization-code/>
-        <implicit/>
+        <authorization-code disabled="false"/>
+        <implicit disabled="false"/>
         <refresh-token/>
-        <client-credentials/>
+        <client-credentials disabled="false"/>
         <password/>
     </authorization-server>
 
