@@ -35,8 +35,7 @@
         updating nodes within the same process. If you're not sure, use pessimistic locking.
      -->
     <clustering mode="replication">
-      <sync/>
-      <stateTransfer chunkSize="100" fetchInMemoryState="true"/>
+      <async/>
     </clustering>
 
     <locking concurrencyLevel="1000" lockAcquisitionTimeout="15000" useLockStriping="false" />
@@ -63,6 +62,7 @@
                     location="${fcrepo.ispn.CacheDirPath:target}/data"
                     expiredLocation="${fcrepo.ispn.CacheDirPath:target}/expired"
               />
+      <clusterLoader remoteCallTimeout="500" />
 
     </loaders>
   </namedCache>
