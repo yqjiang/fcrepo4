@@ -6,7 +6,10 @@
 
 package org.fcrepo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -16,6 +19,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import java.lang.reflect.Field;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Iterator;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -31,6 +35,7 @@ import org.fcrepo.utils.JcrPropertyStatementListener;
 import org.fcrepo.utils.JcrRdfTools;
 import org.fcrepo.utils.NamespaceTools;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.modeshape.common.collection.Problems;
@@ -40,9 +45,11 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.hp.hpl.jena.query.Dataset;
+import com.hp.hpl.jena.query.DatasetFactory;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.sparql.core.DatasetGraph;
 import com.hp.hpl.jena.sparql.util.Symbol;
 
 /**
@@ -212,16 +219,25 @@ public class FedoraResourceTest {
 	@Test
     public void testUpdatePropertiesDataset() throws RepositoryException {
 		
-//    	UpdateAction mockUpdate = mock(UpdateAction.class);
+		 mockStatic(JcrRdfTools.class);
+		 GraphSubjects mockSubjects = mock(GraphSubjects.class);
+		 final Resource mockResource = mock(Resource.class);
+		 when(mockResource.getURI()).thenReturn("info:fedora/xyz");
+		 when(JcrRdfTools.getGraphSubject(mockSubjects,
+		 mockNode)).thenReturn(mockResource);
 		
-//    	GraphSubjects mockGraphSubjects = mock(GraphSubjects.class); 
-//    	testObj.updatePropertiesDataset(mockGraphSubjects, "xyz");
-    	
-//    	verify(mockUpdate).parseExecute(anyString(), any(Dataset.class));
-    }
-    
-    @Test
-    public void testGetPropertiesDataset() throws RepositoryException {
+		 final Model propertiesModel = ModelFactory.createDefaultModel();
+		 when(JcrRdfTools.getJcrPropertiesModel(mockSubjects,
+		 mockNode)).thenReturn(propertiesModel);
+		 final Model treeModel = ModelFactory.createDefaultModel();
+		 when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0, 0))
+			.thenReturn(treeModel);
+		 
+		 testObj.updatePropertiesDataset(mockSubjects, "");		 
+	}	
+	
+	@Test
+	public void testGetPropertiesDataset() throws RepositoryException {
 
         mockStatic(JcrRdfTools.class);
         GraphSubjects mockSubjects = mock(GraphSubjects.class);
@@ -242,35 +258,49 @@ public class FedoraResourceTest {
         assertEquals("info:fedora/xyz", dataset.getContext().get(Symbol.create("uri")));
     }
     
-//	@Test
-//    public void testGetPropertiesDatasetwithNullContext() throws RepositoryException {
-//    	
-//    	mockStatic(JcrRdfTools.class);
-//    	mockStatic(DatasetFactory.class);
-//    	
-//    	GraphSubjects mockSubjects = mock(GraphSubjects.class);
-//    	final Resource mockResource = mock(Resource.class);
-//        when(mockResource.getURI()).thenReturn("info:fedora/xyz");
-//        when(JcrRdfTools.getGraphSubject(mockSubjects, mockNode)).thenReturn(mockResource);
-//        
-//        final Model propertiesModel = ModelFactory.createDefaultModel();
-//        when(JcrRdfTools.getJcrPropertiesModel(mockSubjects, mockNode)).thenReturn(propertiesModel);
-//        final Model treeModel = ModelFactory.createDefaultModel();
-//        when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0, -1)).thenReturn(treeModel);
-//        
-//        DatasetFactory mockDatasetFactory = mock(DatasetFactory.class);
-//    	Dataset mockDataset = mock(Dataset.class);
-//        when(mockDatasetFactory.create(propertiesModel)).thenReturn(mockDataset);
-//    	when(mockDataset.getContext()).thenReturn(null);
-//    	
-//    	final Dataset dataset = testObj.getPropertiesDataset(mockSubjects, 0, -1);   
-//    	
-//    	assertTrue(dataset.containsNamedModel("tree"));
-//        assertEquals(treeModel, dataset.getNamedModel("tree"));
-//
-//        assertEquals(propertiesModel, dataset.getDefaultModel());
-//        assertEquals("info:fedora/xyz", dataset.getContext().get(Symbol.create("uri")));
-//    }
+	@Ignore
+	@Test
+    public void testGetPropertiesDatasetwithNullContext() throws RepositoryException {
+    	
+		mockStatic(JcrRdfTools.class);
+		mockStatic(DatasetFactory.class);
+	
+		GraphSubjects mockSubjects = mock(GraphSubjects.class);
+		final Resource mockResource = mock(Resource.class);
+		when(mockResource.getURI()).thenReturn("info:fedora/xyz");
+		when(JcrRdfTools.getGraphSubject(mockSubjects,
+		mockNode)).thenReturn(mockResource);
+		
+		final Model propertiesModel = ModelFactory.createDefaultModel();
+		when(JcrRdfTools.getJcrPropertiesModel(mockSubjects,
+		mockNode)).thenReturn(propertiesModel);
+		final Model treeModel = ModelFactory.createDefaultModel();	 
+		when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0,
+		-1)).thenReturn(treeModel);
+	 
+		Dataset dataset = mock(Dataset.class);
+		when(DatasetFactory.create(propertiesModel)).thenReturn(dataset);
+		dataset.addNamedModel("tree", treeModel);
+		
+		DatasetGraph mockDsGraph = mock(DatasetGraph.class);
+		Iterator mockIterator = mock(Iterator.class);
+		when(mockDsGraph.listGraphNodes()).thenReturn(mockIterator);
+		when(mockIterator.hasNext()).thenReturn(true);
+		when(mockIterator.next()).thenReturn(mockNode);
+	 
+		when(dataset.asDatasetGraph()).thenReturn(mockDsGraph);   	
+			
+		when(dataset.getContext()).thenReturn(null);
+		
+		final Dataset testDataset = testObj.getPropertiesDataset(mockSubjects, 
+				0, -1);
+		 
+		assertTrue(dataset.containsNamedModel("tree"));
+		assertEquals(treeModel, dataset.getNamedModel("tree"));		
+		assertEquals(propertiesModel, dataset.getDefaultModel());
+		assertEquals("info:fedora/xyz",
+		dataset.getContext().get(Symbol.create("uri")));
+    }
 
     @Test
     public void testGetPropertiesDatasetDefaultLimits() throws RepositoryException {
