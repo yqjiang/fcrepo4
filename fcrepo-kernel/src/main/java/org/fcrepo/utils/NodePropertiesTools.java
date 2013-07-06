@@ -16,15 +16,23 @@
 
 package org.fcrepo.utils;
 
+import static com.google.common.base.Predicates.equalTo;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.ImmutableList.copyOf;
+import static java.util.Arrays.asList;
+import static javax.jcr.PropertyType.UNDEFINED;
+import static javax.jcr.PropertyType.nameFromValue;
 import static org.fcrepo.utils.FedoraTypesUtils.getDefinitionForPropertyName;
+import static org.fcrepo.utils.FedoraTypesUtils.isMultipleValuedProperty;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
+import java.util.List;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -33,7 +41,7 @@ import org.slf4j.Logger;
 
 /**
  * Tools for replacing, appending and deleting JCR node properties
- * 
+ *
  * @author Chris Beer
  * @date May 10, 2013
  */
@@ -51,7 +59,7 @@ public final class NodePropertiesTools {
      * Given a JCR node, property and value, either: - if the property is
      * single-valued, replace the existing property with the new value - if the
      * property is multivalued, append the new value to the property
-     * 
+     *
      * @param node the JCR node
      * @param propertyName a name of a JCR property (either pre-existing or
      *        otherwise)
@@ -69,13 +77,12 @@ public final class NodePropertiesTools {
 
             if (property.isMultiple()) {
                 logger.debug("Appending value {} to {} property {}", newValue,
-                        PropertyType.nameFromValue(property.getType()),
-                        propertyName);
+                        nameFromValue(property.getType()), propertyName);
 
                 // if the property is multi-valued, go ahead and append to it.
-                final ArrayList<Value> newValues = new ArrayList<Value>();
-                Collections.addAll(newValues, node.getProperty(propertyName)
-                        .getValues());
+                final List<Value> newValues =
+                    new ArrayList<Value>(asList(node.getProperty(propertyName)
+                            .getValues()));
 
                 if (!newValues.contains(newValue)) {
                     newValues.add(newValue);
@@ -85,21 +92,20 @@ public final class NodePropertiesTools {
             } else {
                 // or we'll just overwrite it
                 logger.debug("Overwriting {} property {} with new value {}",
-                        PropertyType.nameFromValue(property.getType()),
-                        propertyName, newValue);
+                        nameFromValue(property.getType()), propertyName,
+                        newValue);
                 property.setValue(newValue);
             }
         } else {
             if (isMultivaluedProperty(node, propertyName)) {
                 logger.debug("Creating new multivalued {} property {} with "
-                        + "initial value [{}]", PropertyType
-                        .nameFromValue(newValue.getType()), propertyName,
-                        newValue);
+                        + "initial value [{}]", nameFromValue(newValue
+                        .getType()), propertyName, newValue);
                 node.setProperty(propertyName, new Value[] {newValue});
             } else {
                 logger.debug("Creating new single-valued {} property {} with "
-                        + "initial value {}", PropertyType
-                        .nameFromValue(newValue.getType()), propertyName,
+                        + "initial value {}",
+                        nameFromValue(newValue.getType()), propertyName,
                         newValue);
                 node.setProperty(propertyName, newValue);
             }
@@ -108,12 +114,11 @@ public final class NodePropertiesTools {
     }
 
     /**
-     * Given a JCR node, property and value, remove the value (if it exists)
-     * from the property, and remove the property if no values remove
-     * 
+     * Given a JCR node, property and value, remove the value (if extant)
+     * from the property
+     *
      * @param node the JCR node
-     * @param propertyName a name of a JCR property (either pre-existing or
-     *        otherwise)
+     * @param propertyName a name of a JCR property (pre-existing or not)
      * @param valueToRemove the JCR value to remove
      * @throws RepositoryException
      */
@@ -125,25 +130,18 @@ public final class NodePropertiesTools {
 
             final Property property = node.getProperty(propertyName);
 
-            if (FedoraTypesUtils.isMultipleValuedProperty.apply(property)) {
+            if (isMultipleValuedProperty.apply(property)) {
 
-                final ArrayList<Value> newValues = new ArrayList<Value>();
+                final List<Value> oldValues =
+                    copyOf(node.getProperty(propertyName).getValues());
 
-                boolean remove = false;
-
-                for (final Value v : node.getProperty(propertyName).getValues()) {
-                    if (v.equals(valueToRemove)) {
-                        remove = true;
-                    } else {
-                        newValues.add(v);
-                    }
-                }
-
-                // we only need to update the property if we did anything.
-                if (remove) {
+                // we only need to update the property if we do anything.
+                if (oldValues.contains(valueToRemove)) {
+                    final Collection<Value> newValues =
+                        filter(oldValues, not(equalTo(valueToRemove)));
                     if (newValues.size() == 0) {
                         logger.debug("Removing property {}", propertyName);
-                        property.setValue((Value[]) null);
+                        property.remove();
                     } else {
                         logger.debug("Removing value {} from property {}",
                                 valueToRemove, propertyName);
@@ -151,11 +149,11 @@ public final class NodePropertiesTools {
                                 .size()]));
                     }
                 }
-
             } else {
                 if (property.getValue().equals(valueToRemove)) {
-                    logger.debug("Removing value {} property {}", propertyName);
-                    property.setValue((Value) null);
+                    logger.debug("Removing value {} from property {}",
+                            valueToRemove, propertyName);
+                    property.remove();
                 }
             }
         }
@@ -164,7 +162,7 @@ public final class NodePropertiesTools {
     /**
      * Get the JCR property type ID for a given property name. If unsure, mark
      * it as UNDEFINED.
-     * 
+     *
      * @param node the JCR node to add the property on
      * @param propertyName the property name
      * @return a PropertyType value
@@ -174,18 +172,16 @@ public final class NodePropertiesTools {
         final String propertyName) throws RepositoryException {
         final PropertyDefinition def =
                 getDefinitionForPropertyName(node, propertyName);
-
         if (def == null) {
-            return PropertyType.UNDEFINED;
+            return UNDEFINED;
         }
-
         return def.getRequiredType();
     }
 
     /**
      * Determine if a given JCR property name is single- or multi- valued. If
      * unsure, choose the least restrictive option (multivalued)
-     * 
+     *
      * @param node the JCR node to check
      * @param propertyName the property name (which may or may not already
      *        exist)
@@ -196,11 +192,9 @@ public final class NodePropertiesTools {
             final String propertyName) throws RepositoryException {
         final PropertyDefinition def =
                 getDefinitionForPropertyName(node, propertyName);
-
         if (def == null) {
             return true;
         }
-
         return def.isMultiple();
     }
 

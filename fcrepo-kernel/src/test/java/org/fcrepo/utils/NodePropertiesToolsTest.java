@@ -157,7 +157,7 @@ public class NodePropertiesToolsTest {
         when(mockProperty.getValue()).thenReturn(mockValue);
         when(mockValue.getString()).thenReturn("");
         removeNodeProperty(mockNode, "mockPropertyName", mockValue);
-        verify(mockProperty).setValue((Value) null);
+        verify(mockProperty).remove();
 
     }
 
@@ -168,7 +168,7 @@ public class NodePropertiesToolsTest {
         final Value[] values = new Value[] {mockValue};
         when(mockProperty.getValues()).thenReturn(values);
         removeNodeProperty(mockNode, "mockPropertyName", mockValue);
-        verify(mockProperty).setValue((Value[]) null);
+        verify(mockProperty).remove();
 
     }
 
@@ -201,7 +201,7 @@ public class NodePropertiesToolsTest {
         final Value[] values = new Value[] {mockValue, mockValue};
         when(mockProperty.getValues()).thenReturn(values);
         removeNodeProperty(mockNode, "mockPropertyName", mockValue);
-        verify(mockProperty).setValue((Value[]) null);
+        verify(mockProperty).remove();
     }
 
     @Test
