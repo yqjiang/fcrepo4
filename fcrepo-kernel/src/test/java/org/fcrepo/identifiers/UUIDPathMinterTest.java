@@ -23,15 +23,24 @@ import org.junit.Test;
 
 public class UUIDPathMinterTest {
 
-    private static final String PID_PATTERN =
+    private static final String PID_PATTERN1 =
             "[a-f0-9]{3}/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}";
+
+    private static final String PID_PATTERN2 =
+            "[a-f0-9]{2}/[a-f0-9]{2}/[a-f0-9]{2}/[a-f0-9]{2}/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}";
 
     @Test
     public void testMintPid() throws Exception {
-
         final String pid = new UUIDPathMinter(3, 1).mintPid();
+        assertTrue("PID wasn't a UUID path", compile(PID_PATTERN1).matcher(pid)
+                .find());
 
-        assertTrue("PID wasn't a UUID path", compile(PID_PATTERN).matcher(pid)
+    }
+
+    @Test
+    public void testMintPidUsingDefaultConstructor() throws Exception {
+        final String pid = new UUIDPathMinter().mintPid();
+        assertTrue("PID wasn't a UUID path", compile(PID_PATTERN2).matcher(pid)
                 .find());
 
     }

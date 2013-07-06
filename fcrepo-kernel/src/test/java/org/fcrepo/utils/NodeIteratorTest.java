@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-public class NodeIteratortest {
+public class NodeIteratorTest {
 
     @Mock
     javax.jcr.NodeIterator i;

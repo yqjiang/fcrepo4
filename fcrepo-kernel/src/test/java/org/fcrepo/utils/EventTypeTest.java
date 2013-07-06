@@ -21,13 +21,17 @@ import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
 import static javax.jcr.observation.Event.PERSIST;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
+import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.fcrepo.utils.EventType.getEventName;
+import static org.fcrepo.utils.EventType.getEventType;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 public class EventTypeTest {
+
+    private static final Integer NOT_A_JCR_EVENT_CODE = 99999999;
 
     @Test
     public void testGetEventName() throws Exception {
@@ -37,5 +41,16 @@ public class EventTypeTest {
         assertEquals("property removed", getEventName(PROPERTY_REMOVED));
         assertEquals("node moved", getEventName(NODE_MOVED));
         assertEquals("persist", getEventName(PERSIST));
+        assertEquals("property changed", getEventName(PROPERTY_CHANGED));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBadEventType() {
+        getEventType(NOT_A_JCR_EVENT_CODE);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBadEventName() {
+        getEventName(NOT_A_JCR_EVENT_CODE);
     }
 }

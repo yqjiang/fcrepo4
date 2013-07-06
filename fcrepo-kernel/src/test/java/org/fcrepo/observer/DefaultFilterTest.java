@@ -30,6 +30,7 @@ import java.lang.reflect.Field;
 
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.observation.Event;
 
@@ -146,4 +147,18 @@ public class DefaultFilterTest {
             isFedoraObject = holdO;
         }
     }
+
+    @Test
+    public void testReleaseSession() {
+        testObj.releaseSession();
+        verify(mockSession).logout();
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testBadEvent() throws RepositoryException {
+        final Event badEvent = mock(Event.class);
+        when(badEvent.getPath()).thenThrow(new RepositoryException());
+        testObj.apply(badEvent);
+    }
+
 }

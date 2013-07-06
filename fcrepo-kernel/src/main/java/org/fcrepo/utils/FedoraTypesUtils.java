@@ -66,9 +66,14 @@ import com.google.common.base.Predicate;
  * @author ajs6f
  * @date Feb 14, 2013
  */
-public abstract class FedoraTypesUtils {
+public final class FedoraTypesUtils {
 
     static final Logger LOGGER = getLogger(FedoraTypesUtils.class);
+
+    private FedoraTypesUtils() {
+        throw new AssertionError(
+                "FedoraTypesUtils is a helper class which should not be instantiated!");
+    }
 
     /**
      * Predicate for determining whether this {@link Node} is a Fedora object.

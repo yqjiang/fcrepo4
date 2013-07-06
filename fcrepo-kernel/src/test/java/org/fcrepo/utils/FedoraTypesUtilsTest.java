@@ -30,8 +30,12 @@ import static org.fcrepo.utils.FedoraTypesUtils.getRepositoryCount;
 import static org.fcrepo.utils.FedoraTypesUtils.getRepositorySize;
 import static org.fcrepo.utils.FedoraTypesUtils.getValueFactory;
 import static org.fcrepo.utils.FedoraTypesUtils.getVersionHistory;
+import static org.fcrepo.utils.FedoraTypesUtils.isFedoraDatastream;
+import static org.fcrepo.utils.FedoraTypesUtils.isFedoraObject;
+import static org.fcrepo.utils.FedoraTypesUtils.isFedoraResource;
 import static org.fcrepo.utils.FedoraTypesUtils.isInternalNode;
 import static org.fcrepo.utils.FedoraTypesUtils.isMultipleValuedProperty;
+import static org.fcrepo.utils.FedoraTypesUtils.value2string;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -55,6 +59,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
 import javax.jcr.Workspace;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -98,6 +103,9 @@ public class FedoraTypesUtilsTest {
 
     @Mock
     private NodeTypeManager mockNTM;
+
+    @Mock
+    private Property mockProperty;
 
     @Mock
     private NodeType mockNodeType;
@@ -247,7 +255,7 @@ public class FedoraTypesUtilsTest {
 
     @Test
     public void testGetVersionHistoryForSessionAndPath()
-            throws RepositoryException {
+        throws RepositoryException {
         when(mockSession.getWorkspace()).thenReturn(mockWS);
         when(mockWS.getVersionManager()).thenReturn(mockVersionManager);
         when(mockVersionManager.getVersionHistory("/my/path")).thenReturn(
@@ -317,4 +325,70 @@ public class FedoraTypesUtilsTest {
         verify(mockSession).logout();
         verify(mockSession, never()).save();
     }
+
+    @Test(expected = IllegalStateException.class)
+    public void testBadNodeForIsFedoraResource() throws RepositoryException {
+        when(mockNode.getMixinNodeTypes()).thenThrow(new RepositoryException());
+        isFedoraResource.apply(mockNode);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testBadNodeForIsFedoraObject() throws RepositoryException {
+        when(mockNode.getMixinNodeTypes()).thenThrow(new RepositoryException());
+        isFedoraObject.apply(mockNode);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testBadNodeForIsFedoraDatastream() throws RepositoryException {
+        when(mockNode.getMixinNodeTypes()).thenThrow(new RepositoryException());
+        isFedoraDatastream.apply(mockNode);
+    }
+
+    @Test
+    public void testvalue2string() throws ValueFormatException,
+        IllegalStateException, RepositoryException {
+        when(mockValue.getString()).thenReturn("value");
+        assertEquals("Got wrong string back in value!", "value", value2string
+                .apply(mockValue));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testvalue2stringWithBadValue() throws ValueFormatException,
+        IllegalStateException, RepositoryException {
+        when(mockValue.getString()).thenThrow(new RepositoryException());
+        value2string.apply(mockValue);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testIsMultipleValuedPropertyWithBadProperty()
+        throws RepositoryException {
+        when(mockProperty.isMultiple()).thenThrow(new RepositoryException());
+        isMultipleValuedProperty.apply(mockProperty);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testIsInternalNodeWithBadNode() throws RepositoryException {
+        when(mockNode.getPrimaryNodeType())
+                .thenThrow(new RepositoryException());
+        isInternalNode.apply(mockNode);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetValueFactoryWithBadNode() throws RepositoryException {
+        when(mockNode.getSession()).thenThrow(new RepositoryException());
+        getValueFactory.apply(mockNode);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetBinaryWithBadNode() throws RepositoryException {
+        when(mockNode.getSession()).thenThrow(new RepositoryException());
+        getBinary(mockNode, mockInput);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetBinaryWithHintWithBadNode() throws RepositoryException {
+        when(mockNode.getSession()).thenThrow(new RepositoryException());
+        getBinary(mockNode, mockInput, "");
+    }
+
 }
