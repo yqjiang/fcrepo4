@@ -170,9 +170,8 @@ public final class NodePropertiesTools {
      * @return a PropertyType value
      * @throws RepositoryException
      */
-    public static int
-            getPropertyType(final Node node, final String propertyName)
-                throws RepositoryException {
+    public static int getPropertyType(final Node node,
+        final String propertyName) throws RepositoryException {
         final PropertyDefinition def =
                 getDefinitionForPropertyName(node, propertyName);
 
