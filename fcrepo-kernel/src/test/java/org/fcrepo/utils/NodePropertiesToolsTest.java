@@ -17,8 +17,10 @@
 package org.fcrepo.utils;
 
 import static java.util.Arrays.asList;
+import static javax.jcr.PropertyType.UNDEFINED;
 import static org.fcrepo.utils.FedoraTypesUtils.getDefinitionForPropertyName;
 import static org.fcrepo.utils.NodePropertiesTools.appendOrReplaceNodeProperty;
+import static org.fcrepo.utils.NodePropertiesTools.getPropertyType;
 import static org.fcrepo.utils.NodePropertiesTools.removeNodeProperty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -52,6 +54,8 @@ import org.powermock.modules.junit4.PowerMockRunner;
 @PowerMockIgnore({"org.slf4j.*", "javax.xml.parsers.*", "org.apache.xerces.*"})
 @PrepareForTest({FedoraTypesUtils.class})
 public class NodePropertiesToolsTest {
+
+    private static final String NOT_A_PROPERTY_NAME = "fbghdfghjldsfhglfs";
 
     @Mock
     private PropertyDefinition mockDefinition;
@@ -96,7 +100,7 @@ public class NodePropertiesToolsTest {
 
     @Test
     public void replaceExistingSingleValuedPropertyWithValue()
-            throws RepositoryException {
+        throws RepositoryException {
         when(mockProperty.isMultiple()).thenReturn(false);
         when(mockNode.hasProperty("mockPropertyName")).thenReturn(true);
         appendOrReplaceNodeProperty(mockNode, "mockPropertyName", mockValue);
@@ -105,7 +109,7 @@ public class NodePropertiesToolsTest {
 
     @Test
     public void appendValueToExistingMultivaluedProperty()
-            throws RepositoryException {
+        throws RepositoryException {
         when(mockProperty.isMultiple()).thenReturn(true);
         when(mockNode.hasProperty("mockPropertyName")).thenReturn(true);
         final Value[] values = new Value[] {previousValue};
@@ -125,7 +129,7 @@ public class NodePropertiesToolsTest {
 
     @Test
     public void addMultiValuedPropertyWithSameValueAsExistingProperty()
-            throws RepositoryException {
+        throws RepositoryException {
 
         when(mockProperty.isMultiple()).thenReturn(true);
         when(mockNode.hasProperty("mockPropertyName")).thenReturn(true);
@@ -138,7 +142,7 @@ public class NodePropertiesToolsTest {
 
     @Test
     public void shouldBeANoopWhenRemovingPropertyThatDoesntExist()
-            throws RepositoryException {
+        throws RepositoryException {
         when(mockNode.hasProperty("mockPropertyName")).thenReturn(false);
         removeNodeProperty(mockNode, "mockPropertyName", mockValue);
         verify(mockNode).hasProperty("mockPropertyName");
@@ -170,7 +174,7 @@ public class NodePropertiesToolsTest {
 
     @Test
     public void shouldRemoveAValueFromMultiValuedProperty()
-            throws RepositoryException {
+        throws RepositoryException {
         when(mockProperty.isMultiple()).thenReturn(true);
         when(mockNode.hasProperty("mockPropertyName")).thenReturn(true);
         final Value[] values = new Value[] {previousValue, mockValue};
@@ -190,7 +194,7 @@ public class NodePropertiesToolsTest {
 
     @Test
     public void shouldRemoveAllMatchingValuesFromAMultivaluedProperty()
-            throws RepositoryException {
+        throws RepositoryException {
 
         when(mockProperty.isMultiple()).thenReturn(true);
         when(mockNode.hasProperty("mockPropertyName")).thenReturn(true);
@@ -199,4 +203,12 @@ public class NodePropertiesToolsTest {
         removeNodeProperty(mockNode, "mockPropertyName", mockValue);
         verify(mockProperty).setValue((Value[]) null);
     }
+
+    @Test
+    public void testGetPropertyTypeForBadPropertyName()
+        throws RepositoryException {
+        assertEquals("Should have been an undefined property type!", UNDEFINED,
+                getPropertyType(mockNode, NOT_A_PROPERTY_NAME));
+    }
+
 }
