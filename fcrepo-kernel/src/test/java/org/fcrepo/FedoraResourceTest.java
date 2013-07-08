@@ -216,90 +216,90 @@ public class FedoraResourceTest {
         assertEquals(modDate.getTimeInMillis(), actual.getTime());
     }
 
-	@Test
+    @Test
     public void testUpdatePropertiesDataset() throws RepositoryException {
-		
-		 mockStatic(JcrRdfTools.class);
-		 GraphSubjects mockSubjects = mock(GraphSubjects.class);
-		 final Resource mockResource = mock(Resource.class);
-		 when(mockResource.getURI()).thenReturn("info:fedora/xyz");
-		 when(JcrRdfTools.getGraphSubject(mockSubjects,
-		 mockNode)).thenReturn(mockResource);
-		
-		 final Model propertiesModel = ModelFactory.createDefaultModel();
-		 when(JcrRdfTools.getJcrPropertiesModel(mockSubjects,
-		 mockNode)).thenReturn(propertiesModel);
-		 final Model treeModel = ModelFactory.createDefaultModel();
-		 when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0, 0))
-			.thenReturn(treeModel);
-		 
-		 testObj.updatePropertiesDataset(mockSubjects, "");		 
-	}	
+    	
+         mockStatic(JcrRdfTools.class);
+         GraphSubjects mockSubjects = mock(GraphSubjects.class);
+         final Resource mockResource = mock(Resource.class);
+         when(mockResource.getURI()).thenReturn("info:fedora/xyz");
+         when(JcrRdfTools.getGraphSubject(mockSubjects,
+         mockNode)).thenReturn(mockResource);
+        
+         final Model propertiesModel = ModelFactory.createDefaultModel();
+         when(JcrRdfTools.getJcrPropertiesModel(mockSubjects,
+         mockNode)).thenReturn(propertiesModel);
+         final Model treeModel = ModelFactory.createDefaultModel();
+         when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0, 0))
+        	.thenReturn(treeModel);
+         
+         testObj.updatePropertiesDataset(mockSubjects, "");		 
+    }	
 	
-	@Test
-	public void testGetPropertiesDataset() throws RepositoryException {
-
+    @Test
+    public void testGetPropertiesDataset() throws RepositoryException {
+    
         mockStatic(JcrRdfTools.class);
         GraphSubjects mockSubjects = mock(GraphSubjects.class);
         final Resource mockResource = mock(Resource.class);
         when(mockResource.getURI()).thenReturn("info:fedora/xyz");
         when(JcrRdfTools.getGraphSubject(mockSubjects, mockNode)).thenReturn(mockResource);
-
+        
         final Model propertiesModel = ModelFactory.createDefaultModel();
         when(JcrRdfTools.getJcrPropertiesModel(mockSubjects, mockNode)).thenReturn(propertiesModel);
         final Model treeModel = ModelFactory.createDefaultModel();
         when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0, -1)).thenReturn(treeModel);
         final Dataset dataset = testObj.getPropertiesDataset(mockSubjects, 0, -1);
-
+        
         assertTrue(dataset.containsNamedModel("tree"));
         assertEquals(treeModel, dataset.getNamedModel("tree"));
-
+        
         assertEquals(propertiesModel, dataset.getDefaultModel());
         assertEquals("info:fedora/xyz", dataset.getContext().get(Symbol.create("uri")));
     }
     
-	@Ignore
-	@Test
+    @Ignore
+    @Test
     public void testGetPropertiesDatasetwithNullContext() throws RepositoryException {
     	
-		mockStatic(JcrRdfTools.class);
-		mockStatic(DatasetFactory.class);
-	
-		GraphSubjects mockSubjects = mock(GraphSubjects.class);
-		final Resource mockResource = mock(Resource.class);
-		when(mockResource.getURI()).thenReturn("info:fedora/xyz");
-		when(JcrRdfTools.getGraphSubject(mockSubjects,
-		mockNode)).thenReturn(mockResource);
-		
-		final Model propertiesModel = ModelFactory.createDefaultModel();
-		when(JcrRdfTools.getJcrPropertiesModel(mockSubjects,
-		mockNode)).thenReturn(propertiesModel);
-		final Model treeModel = ModelFactory.createDefaultModel();	 
-		when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0,
-		-1)).thenReturn(treeModel);
-	 
-		Dataset dataset = mock(Dataset.class);
-		when(DatasetFactory.create(propertiesModel)).thenReturn(dataset);
-		dataset.addNamedModel("tree", treeModel);
-		
-		DatasetGraph mockDsGraph = mock(DatasetGraph.class);
-		Iterator mockIterator = mock(Iterator.class);
-		when(mockDsGraph.listGraphNodes()).thenReturn(mockIterator);
-		when(mockIterator.hasNext()).thenReturn(true);
-		when(mockIterator.next()).thenReturn(mockNode);
-	 
-		when(dataset.asDatasetGraph()).thenReturn(mockDsGraph);   	
-			
-		when(dataset.getContext()).thenReturn(null);
-		
-		final Dataset testDataset = testObj.getPropertiesDataset(mockSubjects, 
-				0, -1);
-		 
-		assertTrue(dataset.containsNamedModel("tree"));
-		assertEquals(treeModel, dataset.getNamedModel("tree"));		
-		assertEquals(propertiesModel, dataset.getDefaultModel());
-		assertEquals("info:fedora/xyz",
-		dataset.getContext().get(Symbol.create("uri")));
+        mockStatic(JcrRdfTools.class);
+        mockStatic(DatasetFactory.class);
+        
+        GraphSubjects mockSubjects = mock(GraphSubjects.class);
+        final Resource mockResource = mock(Resource.class);
+        when(mockResource.getURI()).thenReturn("info:fedora/xyz");
+        when(JcrRdfTools.getGraphSubject(mockSubjects,
+        mockNode)).thenReturn(mockResource);
+        	
+        final Model propertiesModel = ModelFactory.createDefaultModel();
+        when(JcrRdfTools.getJcrPropertiesModel(mockSubjects,
+        mockNode)).thenReturn(propertiesModel);
+        final Model treeModel = ModelFactory.createDefaultModel();	 
+        when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0,
+        -1)).thenReturn(treeModel);
+         
+        Dataset dataset = mock(Dataset.class);
+        when(DatasetFactory.create(propertiesModel)).thenReturn(dataset);
+        dataset.addNamedModel("tree", treeModel);
+        
+        DatasetGraph mockDsGraph = mock(DatasetGraph.class);
+        Iterator mockIterator = mock(Iterator.class);
+        when(mockDsGraph.listGraphNodes()).thenReturn(mockIterator);
+        when(mockIterator.hasNext()).thenReturn(true);
+        when(mockIterator.next()).thenReturn(mockNode);
+         
+        when(dataset.asDatasetGraph()).thenReturn(mockDsGraph);   	
+        	
+        when(dataset.getContext()).thenReturn(null);
+        
+        final Dataset testDataset = testObj.getPropertiesDataset(mockSubjects, 
+        		0, -1);
+        	 
+        assertTrue(dataset.containsNamedModel("tree"));
+        assertEquals(treeModel, dataset.getNamedModel("tree"));		
+        assertEquals(propertiesModel, dataset.getDefaultModel());
+        assertEquals("info:fedora/xyz",
+        dataset.getContext().get(Symbol.create("uri")));
     }
 
     @Test
