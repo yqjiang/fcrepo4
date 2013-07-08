@@ -216,6 +216,9 @@ public class FedoraResourceTest {
         assertEquals(modDate.getTimeInMillis(), actual.getTime());
     }
 
+    /**
+     * @todo Add Documentation. Verify methods
+     */
     @Test
     public void testUpdatePropertiesDataset() throws RepositoryException {
     	
@@ -233,9 +236,11 @@ public class FedoraResourceTest {
          when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0, 0))
         	.thenReturn(treeModel);
          
-         testObj.updatePropertiesDataset(mockSubjects, "");		 
+         testObj.updatePropertiesDataset(mockSubjects, "");
+
     }	
 	
+    
     @Test
     public void testGetPropertiesDataset() throws RepositoryException {
     
@@ -258,6 +263,9 @@ public class FedoraResourceTest {
         assertEquals("info:fedora/xyz", dataset.getContext().get(Symbol.create("uri")));
     }
     
+    /**
+     * @todo Add Documentation.
+     */
     @Ignore
     @Test
     public void testGetPropertiesDatasetwithNullContext() throws RepositoryException {
