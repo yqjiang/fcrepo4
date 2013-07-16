@@ -16,14 +16,18 @@
 
 package org.fcrepo.rdf.impl;
 
+import static org.fcrepo.utils.JcrPropertyStatementListener.getListener;
+import static org.fcrepo.utils.JcrRdfTools.getGraphSubject;
+import static org.fcrepo.utils.JcrRdfTools.getJcrPropertiesModel;
+import static org.fcrepo.utils.JcrRdfTools.getJcrTreeModel;
+import static org.fcrepo.utils.JcrRdfTools.getProblemsModel;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 import org.fcrepo.rdf.GraphProperties;
 import org.fcrepo.rdf.GraphSubjects;
 import org.fcrepo.utils.JcrPropertyStatementListener;
-import org.fcrepo.utils.JcrRdfTools;
-
 import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.query.DatasetFactory;
 import com.hp.hpl.jena.rdf.model.Model;
@@ -41,16 +45,14 @@ public class JcrGraphProperties implements GraphProperties {
 
     @Override
     public Dataset getProperties(final Node node, final GraphSubjects subjects,
-            final long offset, final int limit)
+            final Dataset orig_dataset, final long offset, final int limit)
         throws RepositoryException {
-        final Model model = JcrRdfTools.getJcrPropertiesModel(subjects, node);
-        final Model treeModel = JcrRdfTools.getJcrTreeModel(
-                subjects, node, offset, limit);
-        final Model problemModel = JcrRdfTools.getProblemsModel();
+        final Model model = getJcrPropertiesModel(subjects, node);
+        final Model treeModel = getJcrTreeModel(subjects, node, offset, limit);
+        final Model problemModel = getProblemsModel();
 
-        JcrPropertyStatementListener listener =
-            JcrPropertyStatementListener.getListener(
-                    subjects, node.getSession(), problemModel);
+        final JcrPropertyStatementListener listener =
+            getListener(subjects, node.getSession(), problemModel);
 
         model.register(listener);
         treeModel.register(listener);
@@ -58,21 +60,21 @@ public class JcrGraphProperties implements GraphProperties {
         final Dataset dataset = DatasetFactory.create(model);
         dataset.addNamedModel(MODEL_NAME, treeModel);
 
-        Resource subject = JcrRdfTools.getGraphSubject(subjects, node);
-        String uri = subject.getURI();
-        com.hp.hpl.jena.sparql.util.Context context = dataset.getContext();
-        context.set(URI_SYMBOL,uri);
+        final Resource subject = getGraphSubject(subjects, node);
+        final String uri = subject.getURI();
+        final com.hp.hpl.jena.sparql.util.Context context =
+            dataset.getContext();
+        context.set(URI_SYMBOL, uri);
 
-        dataset.addNamedModel(GraphProperties.PROBLEMS_MODEL_NAME,
-                problemModel);
+        dataset.addNamedModel(PROBLEMS_MODEL_NAME, problemModel);
 
         return dataset;
     }
 
     @Override
-    public Dataset getProperties(final Node node, final GraphSubjects subjects)
-        throws RepositoryException {
-        return getProperties(node, subjects, 0, -1);
+    public Dataset getProperties(final Node node, final GraphSubjects subjects,
+        final Dataset orig_dataset) throws RepositoryException {
+        return getProperties(node, subjects, orig_dataset, 0, -1);
     }
 
 }

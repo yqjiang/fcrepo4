@@ -32,7 +32,6 @@ import java.util.Date;
 import java.util.Map;
 
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import org.fcrepo.Transaction;
 import org.fcrepo.exception.TransactionMissingException;

@@ -16,9 +16,21 @@
 
 package org.fcrepo.integration.api;
 
+import static java.lang.Integer.MAX_VALUE;
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.fcrepo.rdf.ExtractionUtils.addExtractor;
+import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_DATASTREAM;
+import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_OBJECT;
+import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_RESOURCE;
+import static org.slf4j.LoggerFactory.getLogger;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.concurrent.TimeUnit;
+
+import javax.jcr.Repository;
+import javax.jcr.Session;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -33,7 +45,6 @@ import org.apache.http.util.EntityUtils;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -47,11 +58,11 @@ public abstract class AbstractResourceIT {
 
     @Before
     public void setLogger() {
-        logger = LoggerFactory.getLogger(this.getClass());
+        logger = getLogger(this.getClass());
     }
 
-    protected static final int SERVER_PORT = Integer.parseInt(System
-            .getProperty("test.port", "8080"));
+    protected static final int SERVER_PORT = parseInt(getProperty("test.port",
+            "8080"));
 
     protected static final String HOSTNAME = "localhost";
 
@@ -64,9 +75,9 @@ public abstract class AbstractResourceIT {
     protected static HttpClient client;
 
     public AbstractResourceIT() {
-        connectionManager.setMaxTotal(Integer.MAX_VALUE);
+        connectionManager.setMaxTotal(MAX_VALUE);
         connectionManager.setDefaultMaxPerRoute(5);
-        connectionManager.closeIdleConnections(3, TimeUnit.SECONDS);
+        connectionManager.closeIdleConnections(3, SECONDS);
         client = new DefaultHttpClient(connectionManager);
     }
 
@@ -111,12 +122,26 @@ public abstract class AbstractResourceIT {
 
     protected int getStatus(final HttpUriRequest method)
         throws ClientProtocolException, IOException {
-        HttpResponse response = execute(method);
-        int result = response.getStatusLine().getStatusCode();
+        final HttpResponse response = execute(method);
+        final int result = response.getStatusLine().getStatusCode();
         if (!(result > 199) || !(result < 400)) {
             logger.warn(EntityUtils.toString(response.getEntity()));
         }
         return result;
+    }
+
+    public static void initExtractors(final Repository repo) throws Exception {
+        final Session session = repo.login();
+        addExtractor(session, FEDORA_RESOURCE,
+                "org.fcrepo.rdf.impl.JcrGraphProperties");
+        addExtractor(session, FEDORA_OBJECT,
+                "org.fcrepo.rdf.impl.JcrGraphProperties");
+        addExtractor(session, FEDORA_DATASTREAM,
+                "org.fcrepo.rdf.impl.JcrGraphProperties");
+        addExtractor(session, "nt:unstructured",
+                "org.fcrepo.rdf.impl.JcrGraphProperties");
+        session.save();
+        session.logout();
     }
 
 }

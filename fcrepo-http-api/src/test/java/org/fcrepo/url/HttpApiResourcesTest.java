@@ -26,6 +26,7 @@ import static org.fcrepo.RdfLexicon.HAS_TRANSACTION_SERVICE;
 import static org.fcrepo.RdfLexicon.HAS_VERSION_HISTORY;
 import static org.fcrepo.test.util.TestHelpers.getUriInfoImpl;
 import static org.fcrepo.test.util.TestHelpers.setField;
+import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_RESOURCE;
 import static org.fcrepo.utils.FedoraJcrTypes.ROOT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -72,9 +73,12 @@ public class HttpApiResourcesTest {
     private SerializerUtil mockSerializers;
 
     @Before
-    public void setUp() throws NoSuchFieldException {
+    public void setUp() throws NoSuchFieldException, RepositoryException {
         initMocks(this);
         testObj = new HttpApiResources();
+        when(mockNodeType.getName()).thenReturn(FEDORA_RESOURCE);
+        when(mockNode.getMixinNodeTypes()).thenReturn(
+                new NodeType[] {mockNodeType});
         mockResource = new FedoraResource(mockNode);
         uriInfo = getUriInfoImpl();
         mockSubjects = new HttpGraphSubjects(FedoraNodes.class, uriInfo);

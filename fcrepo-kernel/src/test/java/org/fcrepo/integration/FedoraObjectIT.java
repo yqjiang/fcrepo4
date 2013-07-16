@@ -31,6 +31,7 @@ import javax.jcr.Value;
 
 import org.fcrepo.FedoraObject;
 import org.fcrepo.services.ObjectService;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.test.context.ContextConfiguration;
 
@@ -45,6 +46,11 @@ public class FedoraObjectIT extends AbstractIT {
 
     @Inject
     ObjectService objectService;
+
+    @Before
+    public void setUp() throws Exception {
+        initExtractors(repo);
+    }
 
     @Test
     public void testCreatedObject() throws RepositoryException, IOException {

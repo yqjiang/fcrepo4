@@ -4,7 +4,11 @@
     "workspaces" : {
         "predefined" : [],
         "default" : "default",
-        "allowCreation" : true
+        "allowCreation" : true,
+        "initialContent" : {
+            "fedora" : "extractors.xml",
+            "default": "extractors.xml"
+        }
     },
     "storage" : {
         "cacheName" : "FedoraRepository",

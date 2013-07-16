@@ -15,7 +15,14 @@
  */
 package org.fcrepo.integration;
 
+import static org.fcrepo.rdf.ExtractionUtils.addExtractor;
+import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_DATASTREAM;
+import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_OBJECT;
+import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_RESOURCE;
 import static org.slf4j.LoggerFactory.getLogger;
+
+import javax.jcr.Repository;
+import javax.jcr.Session;
 
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -32,4 +39,17 @@ public abstract class AbstractIT {
         logger = getLogger(this.getClass());
     }
 
+    public static void initExtractors(final Repository repo) throws Exception {
+        final Session session = repo.login();
+        addExtractor(session, FEDORA_RESOURCE,
+                "org.fcrepo.rdf.impl.JcrGraphProperties");
+        addExtractor(session, FEDORA_OBJECT,
+                "org.fcrepo.rdf.impl.JcrGraphProperties");
+        addExtractor(session, FEDORA_DATASTREAM,
+                "org.fcrepo.rdf.impl.JcrGraphProperties");
+        addExtractor(session, "nt:unstructured",
+                "org.fcrepo.rdf.impl.JcrGraphProperties");
+        session.save();
+        session.logout();
+    }
 }

@@ -35,19 +35,21 @@ import org.fcrepo.utils.LowLevelCacheEntry;
 import org.infinispan.distexec.DefaultExecutorService;
 import org.infinispan.distexec.DistributedExecutorService;
 import org.modeshape.jcr.value.binary.infinispan.InfinispanBinaryStore;
-import org.springframework.stereotype.Component;
-
 import com.google.common.base.Function;
 
 /**
  * Uncategorized helper methods
  */
-@Component
-public abstract class ServiceHelpers {
+public class ServiceHelpers {
+
+    private ServiceHelpers() {
+        throw new AssertionError(
+                "This is a static helper class which should never be instantiated!");
+    }
 
     /**
      * Get the total size of a Node's properties
-     * 
+     *
      * @param node
      * @return size in bytes
      * @throws RepositoryException
@@ -97,7 +99,7 @@ public abstract class ServiceHelpers {
     /**
      * Get the size of a datastream by calculating the size of the properties
      * and the binary properties
-     * 
+     *
      * @param ds
      * @return
      * @throws RepositoryException
@@ -109,7 +111,7 @@ public abstract class ServiceHelpers {
 
     /**
      * Get the size of the JCR content binary property
-     * 
+     *
      * @param ds
      * @return
      * @throws RepositoryException
@@ -132,7 +134,7 @@ public abstract class ServiceHelpers {
     /**
      * A static factory function to insulate services from the details of
      * building a DistributedExecutorService
-     * 
+     *
      * @param cache
      * @return
      */
@@ -147,7 +149,7 @@ public abstract class ServiceHelpers {
     /**
      * Get the fixity function to map a low-level cache entry to its fixity
      * result
-     * 
+     *
      * @param dsChecksum
      * @param dsSize
      * @return
@@ -157,5 +159,6 @@ public abstract class ServiceHelpers {
     getCheckCacheFixityFunction(final URI dsChecksum, final long dsSize) {
         return new CheckCacheEntryFixity(dsChecksum, dsSize);
     }
+
 
 }

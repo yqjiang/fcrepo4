@@ -16,6 +16,10 @@
 
 package org.fcrepo.utils;
 
+import static com.google.common.collect.ImmutableBiMap.of;
+import static com.google.common.collect.Iterators.peekingIterator;
+import static com.hp.hpl.jena.rdf.model.ModelFactory.createDefaultModel;
+import static com.hp.hpl.jena.rdf.model.ResourceFactory.createPlainLiteral;
 import static com.hp.hpl.jena.rdf.model.ResourceFactory.createResource;
 import static com.hp.hpl.jena.rdf.model.ResourceFactory.createTypedLiteral;
 import static javax.jcr.PropertyType.BINARY;
@@ -30,20 +34,38 @@ import static javax.jcr.PropertyType.STRING;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static javax.jcr.PropertyType.URI;
 import static javax.jcr.PropertyType.WEAKREFERENCE;
+import static org.fcrepo.RdfLexicon.HAS_CHILD;
+import static org.fcrepo.RdfLexicon.HAS_CHILD_COUNT;
 import static org.fcrepo.RdfLexicon.HAS_COMPUTED_CHECKSUM;
 import static org.fcrepo.RdfLexicon.HAS_COMPUTED_SIZE;
+import static org.fcrepo.RdfLexicon.HAS_CONTENT;
+import static org.fcrepo.RdfLexicon.HAS_FIXITY_CHECK_COUNT;
+import static org.fcrepo.RdfLexicon.HAS_FIXITY_ERROR_COUNT;
+import static org.fcrepo.RdfLexicon.HAS_FIXITY_REPAIRED_COUNT;
 import static org.fcrepo.RdfLexicon.HAS_FIXITY_RESULT;
 import static org.fcrepo.RdfLexicon.HAS_FIXITY_STATE;
 import static org.fcrepo.RdfLexicon.HAS_LOCATION;
+import static org.fcrepo.RdfLexicon.HAS_MEMBER_OF_RESULT;
+import static org.fcrepo.RdfLexicon.HAS_NAMESPACE_PREFIX;
+import static org.fcrepo.RdfLexicon.HAS_NODE_TYPE;
+import static org.fcrepo.RdfLexicon.HAS_OBJECT_COUNT;
+import static org.fcrepo.RdfLexicon.HAS_OBJECT_SIZE;
+import static org.fcrepo.RdfLexicon.HAS_PARENT;
 import static org.fcrepo.RdfLexicon.HAS_VERSION;
 import static org.fcrepo.RdfLexicon.HAS_VERSION_LABEL;
+import static org.fcrepo.RdfLexicon.IS_CONTENT_OF;
 import static org.fcrepo.RdfLexicon.IS_FIXITY_RESULT_OF;
 import static org.fcrepo.metrics.RegistryService.getMetrics;
+import static org.fcrepo.utils.FedoraJcrTypes.ROOT;
 import static org.fcrepo.utils.FedoraTypesUtils.getNodeTypeManager;
 import static org.fcrepo.utils.FedoraTypesUtils.getPredicateForProperty;
 import static org.fcrepo.utils.FedoraTypesUtils.getRepositoryCount;
 import static org.fcrepo.utils.FedoraTypesUtils.getRepositorySize;
 import static org.fcrepo.utils.FedoraTypesUtils.getValueFactory;
+import static org.fcrepo.utils.FedoraTypesUtils.getVersionHistory;
+import static org.fcrepo.utils.FedoraTypesUtils.isInternalNode;
+import static org.fcrepo.utils.NamespaceTools.getNamespaceRegistry;
+import static org.modeshape.jcr.api.JcrConstants.JCR_CONTENT;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Iterator;
@@ -76,21 +98,17 @@ import org.slf4j.Logger;
 
 import com.codahale.metrics.Counter;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.hp.hpl.jena.datatypes.RDFDatatype;
 import com.hp.hpl.jena.datatypes.xsd.XSDDateTime;
 import com.hp.hpl.jena.rdf.model.Literal;
 import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Resource;
-import com.hp.hpl.jena.rdf.model.ResourceFactory;
 
 /**
  * A set of helpful tools for converting JCR properties to RDF
- * 
+ *
  * @author Chris Beer
  * @date May 10, 2013
  */
@@ -104,9 +122,9 @@ public abstract class JcrRdfTools {
     /**
      * A map of JCR namespaces to Fedora's RDF namespaces
      */
-    public static BiMap<String, String> jcrNamespacesToRDFNamespaces =
-            ImmutableBiMap.of("http://www.jcp.org/jcr/1.0",
-                    "info:fedora/fedora-system:def/internal#");
+    public static BiMap<String, String> jcrNamespacesToRDFNamespaces = of(
+            "http://www.jcp.org/jcr/1.0",
+            "info:fedora/fedora-system:def/internal#");
 
     /**
      * A map of Fedora's RDF namespaces to the JCR equivalent
@@ -118,7 +136,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Convert a Fedora RDF Namespace into its JCR equivalent
-     * 
+     *
      * @param rdfNamespaceUri a namespace from an RDF document
      * @return the JCR namespace, or the RDF namespace if no matching JCR
      *         namespace is found
@@ -135,7 +153,7 @@ public abstract class JcrRdfTools {
     /**
      * Convert a JCR namespace into an RDF namespace fit for downstream
      * consumption.
-     * 
+     *
      * @param jcrNamespaceUri a namespace from the JCR NamespaceRegistry
      * @return an RDF namespace for downstream consumption.
      */
@@ -150,7 +168,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Translate a JCR node into an RDF Resource
-     * 
+     *
      * @param node
      * @return an RDF URI resource
      * @throws RepositoryException
@@ -162,7 +180,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Translate an RDF resource into a JCR node
-     * 
+     *
      * @param session
      * @param subject an RDF URI resource
      * @return a JCR node, or null if one couldn't be found
@@ -184,17 +202,17 @@ public abstract class JcrRdfTools {
 
     /**
      * Create a default Jena Model populated with the registered JCR namespaces
-     * 
+     *
      * @param session
      * @return
      * @throws RepositoryException
      */
     private static Model createDefaultJcrModel(final Session session)
         throws RepositoryException {
-        final Model model = ModelFactory.createDefaultModel();
+        final Model model = createDefaultModel();
 
         final javax.jcr.NamespaceRegistry namespaceRegistry =
-                NamespaceTools.getNamespaceRegistry(session);
+            getNamespaceRegistry(session);
         assert (namespaceRegistry != null);
 
         for (final String prefix : namespaceRegistry.getPrefixes()) {
@@ -216,7 +234,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Get an RDF model of the registered JCR namespaces
-     * 
+     *
      * @param session
      * @return
      * @throws RepositoryException
@@ -231,9 +249,8 @@ public abstract class JcrRdfTools {
             if (entry.getKey().isEmpty()) {
                 continue;
             }
-            model.add(ResourceFactory.createResource(entry.getValue()),
-                    RdfLexicon.HAS_NAMESPACE_PREFIX, ResourceFactory
-                            .createPlainLiteral(entry.getKey()));
+            model.add(createResource(entry.getValue()), HAS_NAMESPACE_PREFIX,
+                    createPlainLiteral(entry.getKey()));
         }
 
         return model;
@@ -241,7 +258,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Get an RDF model for the given JCR NodeIterator
-     * 
+     *
      * @param factory
      * @param nodeIterator
      * @param iteratorSubject
@@ -253,19 +270,18 @@ public abstract class JcrRdfTools {
         throws RepositoryException {
 
         if (!nodeIterator.hasNext()) {
-            return ModelFactory.createDefaultModel();
+            return createDefaultModel();
         }
 
-        final PeekingIterator<Node> iterator =
-                Iterators.peekingIterator(nodeIterator);
+        final PeekingIterator<Node> iterator = peekingIterator(nodeIterator);
         final Model model =
-                createDefaultJcrModel((iterator.peek()).getSession());
+            createDefaultJcrModel((iterator.peek()).getSession());
 
         while (iterator.hasNext()) {
             final Node node = iterator.next();
             addJcrPropertiesToModel(factory, node, model);
             if (iteratorSubject != null) {
-                model.add(iteratorSubject, RdfLexicon.HAS_MEMBER_OF_RESULT,
+                model.add(iteratorSubject, HAS_MEMBER_OF_RESULT,
                         getGraphSubject(factory, node));
             }
         }
@@ -276,7 +292,7 @@ public abstract class JcrRdfTools {
     /**
      * Get an RDF Model for a node that includes all its own JCR properties, as
      * well as the properties of its immediate children.
-     * 
+     *
      * @param node
      * @return
      * @throws RepositoryException
@@ -286,7 +302,7 @@ public abstract class JcrRdfTools {
 
         final Model model = createDefaultJcrModel(node.getSession());
 
-        if (node.getPrimaryNodeType().getName().equals(FedoraJcrTypes.ROOT)) {
+        if (node.getPrimaryNodeType().getName().equals(ROOT)) {
             /* a rdf description of the root node */
             LOGGER.debug("Creating RDF response for repository description");
             addRepositoryMetricsToModel(factory, node, model);
@@ -302,12 +318,12 @@ public abstract class JcrRdfTools {
      * @return
      */
     public static Model getProblemsModel() {
-        return ModelFactory.createDefaultModel();
+        return createDefaultModel();
     }
 
     /**
      * Add repository metrics data to the given JCR model
-     * 
+     *
      * @param factory
      * @param node
      * @param model
@@ -338,12 +354,10 @@ public abstract class JcrRdfTools {
 
         while (nodeTypes.hasNext()) {
             final NodeType nodeType = nodeTypes.nextNodeType();
-            model.add(subject, RdfLexicon.HAS_NODE_TYPE, nodeType.getName());
+            model.add(subject, HAS_NODE_TYPE, nodeType.getName());
         }
-        model.add(subject, RdfLexicon.HAS_OBJECT_COUNT, ResourceFactory
-                .createTypedLiteral(getRepositoryCount(repository)));
-        model.add(subject, RdfLexicon.HAS_OBJECT_SIZE, ResourceFactory
-                .createTypedLiteral(getRepositorySize(repository)));
+        model.add(subject, HAS_OBJECT_COUNT, createTypedLiteral(getRepositoryCount(repository)));
+        model.add(subject, HAS_OBJECT_SIZE, createTypedLiteral(getRepositorySize(repository)));
 
         /* TODO: Get and add the Storage policy to the RDF response */
 
@@ -357,23 +371,23 @@ public abstract class JcrRdfTools {
 
         for (final Map.Entry<String, String> entry : config.entrySet()) {
             model.add(subject, model
-                    .createProperty("info:fedora/fedora-system:def/internal#" +
-                            entry.getKey()), entry.getValue());
+                    .createProperty("info:fedora/fedora-system:def/internal#"
+                            + entry.getKey()), entry.getValue());
         }
 
         /* and add the repository metrics to the RDF model */
         if (counters
                 .containsKey("org.fcrepo.services.LowLevelStorageService.fixity-check-counter")) {
-            model.add(subject, RdfLexicon.HAS_FIXITY_CHECK_COUNT,
-                    ResourceFactory.createTypedLiteral(counters.get(
+            model.add(subject, HAS_FIXITY_CHECK_COUNT,
+                    createTypedLiteral(counters.get(
                             "org.fcrepo.services." + "LowLevelStorageService."
                                     + "fixity-check-counter").getCount()));
         }
 
         if (counters
                 .containsKey("org.fcrepo.services.LowLevelStorageService.fixity-error-counter")) {
-            model.add(subject, RdfLexicon.HAS_FIXITY_ERROR_COUNT,
-                    ResourceFactory.createTypedLiteral(counters.get(
+            model.add(subject, HAS_FIXITY_ERROR_COUNT,
+                    createTypedLiteral(counters.get(
                             "org.fcrepo.services." + "LowLevelStorageService."
                                     + "fixity-error-counter").getCount()));
         }
@@ -381,8 +395,8 @@ public abstract class JcrRdfTools {
         if (counters
                 .containsKey("org.fcrepo.services.LowLevelStorageService.fixity-repaired-counter")) {
 
-            model.add(subject, RdfLexicon.HAS_FIXITY_REPAIRED_COUNT,
-                    ResourceFactory.createTypedLiteral(counters.get(
+            model.add(subject, HAS_FIXITY_REPAIRED_COUNT,
+                    createTypedLiteral(counters.get(
                             "org.fcrepo.services." + "LowLevelStorageService."
                                     + "fixity-repaired-counter").getCount()));
         }
@@ -391,7 +405,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Add information about a jcr:content node to the model
-     * 
+     *
      * @param factory
      * @param node
      * @param model
@@ -424,7 +438,7 @@ public abstract class JcrRdfTools {
     /**
      * Add the properties of a Node's parent and immediate children (as well as
      * the jcr:content of children) to the given RDF model
-     * 
+     *
      * @param node
      * @param offset
      * @param limit @throws RepositoryException
@@ -440,7 +454,7 @@ public abstract class JcrRdfTools {
         // don't do this if the node is the root node.
         if (node.getDepth() != 0) {
             final Node parentNode = node.getParent();
-            model.add(subject, RdfLexicon.HAS_PARENT, getGraphSubject(factory,
+            model.add(subject, HAS_PARENT, getGraphSubject(factory,
                     parentNode));
             addJcrPropertiesToModel(factory, parentNode, model);
         }
@@ -454,8 +468,8 @@ public abstract class JcrRdfTools {
             final Node childNode = nodeIterator.nextNode();
 
             // exclude jcr system nodes or jcr:content nodes
-            if (FedoraTypesUtils.isInternalNode.apply(childNode) ||
-                    childNode.getName().equals(JcrConstants.JCR_CONTENT)) {
+            if (isInternalNode.apply(childNode) ||
+                    childNode.getName().equals(JCR_CONTENT)) {
                 excludedNodeCount++;
             } else {
                 final Resource childNodeSubject =
@@ -467,21 +481,20 @@ public abstract class JcrRdfTools {
 
                 i++;
 
-                model.add(subject, RdfLexicon.HAS_CHILD, childNodeSubject);
-                model.add(childNodeSubject, RdfLexicon.HAS_PARENT, subject);
+                model.add(subject, HAS_CHILD, childNodeSubject);
+                model.add(childNodeSubject, HAS_PARENT, subject);
             }
 
         }
 
-        model.add(subject, RdfLexicon.HAS_CHILD_COUNT, ResourceFactory
-                .createTypedLiteral(nodeIterator.getSize() - excludedNodeCount));
+        model.add(subject, HAS_CHILD_COUNT, createTypedLiteral(nodeIterator.getSize() - excludedNodeCount));
 
         return model;
     }
 
     /**
      * Add all of a node's properties to the given model
-     * 
+     *
      * @param node
      * @param model
      * @throws RepositoryException
@@ -490,22 +503,19 @@ public abstract class JcrRdfTools {
             final Node node, final Model model) throws RepositoryException {
 
         final Resource subject = getGraphSubject(factory, node);
-        final javax.jcr.PropertyIterator properties = node.getProperties();
-
-        while (properties.hasNext()) {
-            final Property property = properties.nextProperty();
-
-            addPropertyToModel(subject, model, property);
+        for (final javax.jcr.PropertyIterator properties = node.getProperties(); properties
+                .hasNext();) {
+            addPropertyToModel(subject, model, properties.nextProperty());
         }
 
         // always include the jcr:content node information
-        if (node.hasNode(JcrConstants.JCR_CONTENT)) {
-            final Node contentNode = node.getNode(JcrConstants.JCR_CONTENT);
+        if (node.hasNode(JCR_CONTENT)) {
+            final Node contentNode = node.getNode(JCR_CONTENT);
             final Resource contentSubject =
                     getGraphSubject(factory, contentNode);
 
-            model.add(subject, RdfLexicon.HAS_CONTENT, contentSubject);
-            model.add(contentSubject, RdfLexicon.IS_CONTENT_OF, subject);
+            model.add(subject, HAS_CONTENT, contentSubject);
+            model.add(contentSubject, IS_CONTENT_OF, subject);
 
             addJcrPropertiesToModel(factory, contentNode, model);
             addJcrContentLocationInformationToModel(factory, node, model);
@@ -515,7 +525,7 @@ public abstract class JcrRdfTools {
     /**
      * Create a JCR value from an RDFNode, either by using the given JCR
      * PropertyType or by looking at the RDFNode Datatype
-     * 
+     *
      * @param data an RDF Node (possibly with a DataType)
      * @param type a JCR PropertyType value
      * @return a JCR Value
@@ -575,7 +585,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Add a JCR property to the given RDF Model (with the given subject)
-     * 
+     *
      * @param subject the RDF subject to use in the assertions
      * @param model the RDF graph to insert the triple into
      * @param property the JCR property (multivalued or not) to convert to
@@ -599,7 +609,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Add a JCR property to the given RDF Model (with the given subject)
-     * 
+     *
      * @param subject the RDF subject to use in the assertions
      * @param model the RDF graph to insert the triple into
      * @param property the JCR property (multivalued or not) to convert to
@@ -624,12 +634,10 @@ public abstract class JcrRdfTools {
                 model.addLiteral(subject, predicate, v.getBoolean());
                 break;
             case DATE:
-                model.add(subject, predicate, ResourceFactory
-                        .createTypedLiteral(v.getDate()));
+                model.add(subject, predicate, createTypedLiteral(v.getDate()));
                 break;
             case DECIMAL:
-                model.add(subject, predicate, ResourceFactory
-                        .createTypedLiteral(v.getDecimal()));
+                model.add(subject, predicate, createTypedLiteral(v.getDecimal()));
                 break;
             case DOUBLE:
                 model.addLiteral(subject, predicate, v.getDouble());
@@ -663,7 +671,7 @@ public abstract class JcrRdfTools {
     /**
      * Given an RDF predicate value (namespace URI + local name), figure out
      * what JCR property to use
-     * 
+     *
      * @param node the JCR node we want a property for
      * @param predicate the predicate to map to a property name
      * @return the JCR property name
@@ -676,10 +684,9 @@ public abstract class JcrRdfTools {
         final String prefix;
 
         final String namespace =
-                getJcrNamespaceForRDFNamespace(predicate.getNameSpace());
+            getJcrNamespaceForRDFNamespace(predicate.getNameSpace());
 
-        final NamespaceRegistry namespaceRegistry =
-                NamespaceTools.getNamespaceRegistry(node);
+        final NamespaceRegistry namespaceRegistry = getNamespaceRegistry(node);
 
         assert (namespaceRegistry != null);
 
@@ -702,7 +709,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Strip our silly "namespace" stuff from the object
-     * 
+     *
      * @param node an existing JCR node
      * @param path the RDF URI to look up
      * @return the JCR node at the given RDF path
@@ -717,7 +724,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Get a Jena RDF model for the JCR version history information for a node
-     * 
+     *
      * @param factory
      * @param node
      * @return
@@ -730,8 +737,7 @@ public abstract class JcrRdfTools {
 
         final Model model = createDefaultJcrModel(node.getSession());
 
-        final VersionHistory versionHistory =
-                FedoraTypesUtils.getVersionHistory(node);
+        final VersionHistory versionHistory = getVersionHistory(node);
 
         final VersionIterator versionIterator = versionHistory.getAllVersions();
 
@@ -764,7 +770,7 @@ public abstract class JcrRdfTools {
 
     /**
      * Serialize the JCR fixity information in a Jena Model
-     * 
+     *
      * @param factory
      * @param node
      * @param blobs

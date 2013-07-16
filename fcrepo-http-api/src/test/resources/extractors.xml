@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:fedora="info:fedora/"
+    xmlns:nt="http://www.jcp.org/jcr/nt/1.0">
+    <fedora:extractors>
+        <fedora:object>
+            <org.fcrepo.rdf.impl.JcrGraphProperties/>
+        </fedora:object>
+        <fedora:resource>
+            <org.fcrepo.rdf.impl.JcrGraphProperties/>
+        </fedora:resource>
+        <fedora:datastream>
+            <org.fcrepo.rdf.impl.JcrGraphProperties/>
+        </fedora:datastream>
+        <nt:unstructured>
+            <org.fcrepo.rdf.impl.JcrGraphProperties/>
+        </nt:unstructured>
+    </fedora:extractors>
+</jcr:root>

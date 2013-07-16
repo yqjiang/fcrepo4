@@ -75,7 +75,7 @@ public class Datastream extends FedoraResource implements FedoraJcrTypes {
     public Datastream(final Session session, final String path,
                       final String nodeType) throws RepositoryException {
         super(session, path, nodeType);
-        mixinTypeSpecificCrap();
+        mixinTypeInit();
     }
 
     /**
@@ -89,7 +89,7 @@ public class Datastream extends FedoraResource implements FedoraJcrTypes {
         this(session, path, JcrConstants.NT_FILE);
     }
 
-    private void mixinTypeSpecificCrap() {
+    private void mixinTypeInit() {
         try {
             if (node.isNew() || !hasMixin(node)) {
                 LOGGER.debug("Setting {} properties on a {} node...",

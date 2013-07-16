@@ -16,13 +16,14 @@
 package org.fcrepo;
 
 import static org.fcrepo.utils.FedoraTypesUtils.isFedoraObject;
+import static org.modeshape.jcr.api.JcrConstants.JCR_CONTENT;
+import static org.modeshape.jcr.api.JcrConstants.NT_FOLDER;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.modeshape.jcr.api.JcrConstants;
 import org.slf4j.Logger;
 
 /**
@@ -42,7 +43,7 @@ public class FedoraObject extends FedoraResource {
      */
     public FedoraObject(final Node node) {
         super(node);
-        mixinTypeSpecificCrap();
+        mixinTypeInit();
     }
 
     /**
@@ -54,7 +55,7 @@ public class FedoraObject extends FedoraResource {
     public FedoraObject(final Session session, final String path,
                         final String nodeType) throws RepositoryException {
         super(session, path, nodeType);
-        mixinTypeSpecificCrap();
+        mixinTypeInit();
     }
     /**
      * Create or find a FedoraDatastream at the given path
@@ -64,22 +65,20 @@ public class FedoraObject extends FedoraResource {
      */
     public FedoraObject(final Session session, final String path)
         throws RepositoryException {
-        this(session, path, JcrConstants.NT_FOLDER);
+        this(session, path, NT_FOLDER);
     }
 
 
-    private void mixinTypeSpecificCrap() {
+    private void mixinTypeInit() {
         try {
             if (node.isNew() || !hasMixin(node)) {
                 logger.debug("Setting {} properties on a {} node {}...",
-                             FEDORA_OBJECT,
-                             JcrConstants.NT_FOLDER,
-                             node.getPath());
+                        FEDORA_OBJECT, NT_FOLDER, node.getPath());
                 node.addMixin(FEDORA_OBJECT);
             }
-        } catch (RepositoryException e) {
+        } catch (final RepositoryException e) {
             logger.warn("Could not decorate {} with {} properties: {} ",
-                        JcrConstants.JCR_CONTENT, FEDORA_OBJECT, e);
+                    JCR_CONTENT, FEDORA_OBJECT, e);
         }
     }
 

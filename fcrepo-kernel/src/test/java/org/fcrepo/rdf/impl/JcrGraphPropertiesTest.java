@@ -16,7 +16,13 @@
 
 package org.fcrepo.rdf.impl;
 
+import static com.hp.hpl.jena.query.DatasetFactory.createMem;
 import static com.hp.hpl.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.fcrepo.rdf.GraphProperties.URI_SYMBOL;
+import static org.fcrepo.utils.JcrRdfTools.getGraphSubject;
+import static org.fcrepo.utils.JcrRdfTools.getJcrPropertiesModel;
+import static org.fcrepo.utils.JcrRdfTools.getJcrTreeModel;
+import static org.fcrepo.utils.JcrRdfTools.getProblemsModel;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -27,10 +33,10 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 import org.fcrepo.DummyURIResource;
-import org.fcrepo.rdf.GraphProperties;
 import org.fcrepo.rdf.GraphSubjects;
 import org.fcrepo.utils.JcrPropertyStatementListener;
 import org.fcrepo.utils.JcrRdfTools;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -46,7 +52,7 @@ import com.hp.hpl.jena.sparql.util.Symbol;
 
 @RunWith(PowerMockRunner.class)
 //PowerMock needs to ignore some packages to prevent class-cast errors
-//PowerMock needs to ignore unnecessary packages to keep from running out of heap 
+//PowerMock needs to ignore unnecessary packages to keep from running out of heap
 @PowerMockIgnore({
     "org.slf4j.*",
     "org.apache.xerces.*",
@@ -59,36 +65,44 @@ import com.hp.hpl.jena.sparql.util.Symbol;
     })
 @PrepareForTest({JcrRdfTools.class, JcrPropertyStatementListener.class})
 public class JcrGraphPropertiesTest {
-    
+
     private JcrGraphProperties testObj = new JcrGraphProperties();
-    
+
     @Mock
-    Node mockNode;
-    
+    private Node mockNode;
+
     @Mock
-    GraphSubjects mockSubjects;
+    private GraphSubjects mockSubjects;
+
+    private Dataset testDataset;
+
+    @Before
+    public void setUp() {
+        testDataset = createMem();
+    }
 
     @Test
     public void testGetPropertiesDataset() throws RepositoryException {
 
         mockStatic(JcrRdfTools.class);
         final Resource mockResource = new DummyURIResource("info:fedora/xyz");
-        when(JcrRdfTools.getGraphSubject(mockSubjects, mockNode)).thenReturn(mockResource);
+        when(getGraphSubject(mockSubjects, mockNode)).thenReturn(mockResource);
 
         final Model propertiesModel = createDefaultModel();
-        when(JcrRdfTools.getJcrPropertiesModel(mockSubjects, mockNode)).thenReturn(
+        when(getJcrPropertiesModel(mockSubjects, mockNode)).thenReturn(
                 propertiesModel);
         final Model treeModel = createDefaultModel();
-        when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0, -1)).thenReturn(
+        when(getJcrTreeModel(mockSubjects, mockNode, 0, -1)).thenReturn(
                 treeModel);
         final Model problemsModel = createDefaultModel();
-        when(JcrRdfTools.getProblemsModel()).thenReturn(
+        when(getProblemsModel()).thenReturn(
                 problemsModel);
         final Dataset dataset =
-                testObj.getProperties(mockNode, mockSubjects, 0, -1);
+            testObj.getProperties(mockNode, mockSubjects, testDataset, 0, -1);
 
-        assertTrue(dataset.containsNamedModel("tree"));
-        assertEquals(treeModel, dataset.getNamedModel("tree"));
+        assertTrue(dataset.containsNamedModel(testObj.getPropertyModelName()));
+        assertEquals(treeModel, dataset.getNamedModel(testObj
+                .getPropertyModelName()));
 
         assertEquals(propertiesModel, dataset.getDefaultModel());
         assertEquals("info:fedora/xyz", dataset.getContext().get(
@@ -104,25 +118,26 @@ public class JcrGraphPropertiesTest {
         when(JcrRdfTools.getGraphSubject(mockSubjects, mockNode)).thenReturn(mockResource);
 
         final Model propertiesModel = createDefaultModel();
-        when(JcrRdfTools.getJcrPropertiesModel(mockSubjects, mockNode)).thenReturn(
+        when(getJcrPropertiesModel(mockSubjects, mockNode)).thenReturn(
                 propertiesModel);
         final Model treeModel = createDefaultModel();
-        when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0, -1)).thenReturn(
+        when(getJcrTreeModel(mockSubjects, mockNode, 0, -1)).thenReturn(
                 treeModel);
         final Model problemsModel = createDefaultModel();
-        when(JcrRdfTools.getProblemsModel()).thenReturn(
-                problemsModel);
-        final Dataset dataset = testObj.getProperties(mockNode, mockSubjects);
+        when(getProblemsModel()).thenReturn(problemsModel);
+        final Dataset dataset =
+            testObj.getProperties(mockNode, mockSubjects, testDataset);
 
         verifyStatic();
-        JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0, -1);
-        assertTrue(dataset.containsNamedModel("tree"));
-        assertEquals(treeModel, dataset.getNamedModel("tree"));
+        getJcrTreeModel(mockSubjects, mockNode, 0, -1);
+        assertTrue(dataset.containsNamedModel(testObj.getPropertyModelName()));
+        assertEquals(treeModel, dataset.getNamedModel(testObj
+                .getPropertyModelName()));
 
         assertEquals(propertiesModel, dataset.getDefaultModel());
         assertEquals("info:fedora/xyz", dataset.getContext().get(
                 Symbol.create("uri")));
-        
+
         assertTrue(dataset.containsNamedModel("problems"));
     }
 
@@ -132,26 +147,26 @@ public class JcrGraphPropertiesTest {
         mockStatic(JcrRdfTools.class);
 
         final Resource mockResource = new DummyURIResource("info:fedora/xyz");
-        when(JcrRdfTools.getGraphSubject(mockSubjects, mockNode)).thenReturn(
+        when(getGraphSubject(mockSubjects, mockNode)).thenReturn(
                 mockResource);
 
         final Model propertiesModel = createDefaultModel();
-        when(JcrRdfTools.getJcrPropertiesModel(mockSubjects, mockNode))
+        when(getJcrPropertiesModel(mockSubjects, mockNode))
                 .thenReturn(propertiesModel);
         final Model treeModel = createDefaultModel();
-        when(JcrRdfTools.getJcrTreeModel(mockSubjects, mockNode, 0, -1))
+        when(getJcrTreeModel(mockSubjects, mockNode, 0, -1))
                 .thenReturn(treeModel);
         final Model problemsModel = createDefaultModel();
-        when(JcrRdfTools.getProblemsModel()).thenReturn(
+        when(getProblemsModel()).thenReturn(
                 problemsModel);
-        final Dataset dataset = testObj.getProperties(mockNode, mockSubjects);
+        final Dataset dataset =
+            testObj.getProperties(mockNode, mockSubjects, testDataset);
 
-        assertTrue(dataset.containsNamedModel("tree"));
-        assertEquals(treeModel, dataset.getNamedModel("tree"));
+        assertTrue(dataset.containsNamedModel(testObj.getPropertyModelName()));
+        assertEquals(treeModel, dataset.getNamedModel(testObj
+                .getPropertyModelName()));
 
         assertEquals(propertiesModel, dataset.getDefaultModel());
-        assertEquals("info:fedora/xyz", dataset.getContext().get(
-                GraphProperties.URI_SYMBOL));
+        assertEquals("info:fedora/xyz", dataset.getContext().get(URI_SYMBOL));
     }
-
 }

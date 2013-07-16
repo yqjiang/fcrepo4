@@ -21,7 +21,6 @@ import static org.fcrepo.utils.JcrRdfTools.getNodeFromGraphSubject;
 import static org.fcrepo.utils.JcrRdfTools.getPropertyNameFromPredicate;
 import static org.fcrepo.utils.JcrRdfTools.isFedoraGraphSubject;
 import static org.fcrepo.utils.NodePropertiesTools.getPropertyType;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
@@ -78,7 +77,7 @@ public class JcrPropertyStatementListenerTest {
 
     @Mock
     private Node mockSubjectNode;
-    
+
     @Mock
     private Model mockProblems;
 

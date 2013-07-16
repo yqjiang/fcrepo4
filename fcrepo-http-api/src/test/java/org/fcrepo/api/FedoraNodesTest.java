@@ -24,6 +24,7 @@ import static org.fcrepo.test.util.TestHelpers.mockSession;
 import static org.fcrepo.test.util.TestHelpers.setField;
 import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_DATASTREAM;
 import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_OBJECT;
+import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_RESOURCE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -48,6 +49,7 @@ import java.util.Date;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.nodetype.NodeType;
 import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
@@ -102,8 +104,11 @@ public class FedoraNodesTest {
 
     @Mock
     private Model mockModel;
-    
+
     private UriInfo uriInfo;
+
+    @Mock
+    private NodeType mockNodeType;
 
     @Before
     public void setUp() throws Exception {
@@ -180,6 +185,9 @@ public class FedoraNodesTest {
         final String dsPath = "/" + pid + "/" + dsId;
         final InputStream dsContentStream = IOUtils.toInputStream(dsContent);
         when(mockNode.getSession()).thenReturn(mockSession);
+        when(mockNodeType.getName()).thenReturn(FEDORA_RESOURCE);
+        when(mockNode.getMixinNodeTypes()).thenReturn(
+                new NodeType[] {mockNodeType});
         when(
                 mockDatastreams.createDatastreamNode(any(Session.class),
                         eq(dsPath), anyString(), eq(dsContentStream),

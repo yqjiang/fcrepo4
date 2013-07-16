@@ -95,7 +95,7 @@ public class FedoraNodes extends AbstractResource {
 
     /**
      * Retrieve the node profile
-     * 
+     *
      * @param pathList
      * @param offset with limit, control the pagination window of details for
      *        child nodes
@@ -163,7 +163,7 @@ public class FedoraNodes extends AbstractResource {
 
     /**
      * Does nothing (good) yet -- just runs SPARQL-UPDATE statements
-     * 
+     *
      * @param pathList
      * @param requestBodyStream
      * @return 201
@@ -224,7 +224,7 @@ public class FedoraNodes extends AbstractResource {
 
     /**
      * Update an object using SPARQL-UPDATE
-     * 
+     *
      * @param pathList
      * @return 201
      * @throws RepositoryException
@@ -248,15 +248,15 @@ public class FedoraNodes extends AbstractResource {
 
             if (requestBodyStream != null) {
 
-                final FedoraResource result =
+                final FedoraResource resource =
                         nodeService.getObject(session, path);
 
-                Dataset properties = result.updatePropertiesDataset(new HttpGraphSubjects(
+                final Dataset properties = resource.updatePropertiesDataset(new HttpGraphSubjects(
                         FedoraNodes.class, uriInfo, session), IOUtils
                         .toString(requestBodyStream));
-                Model problems = properties.getNamedModel(PROBLEMS_MODEL_NAME);
+                final Model problems = properties.getNamedModel(PROBLEMS_MODEL_NAME);
                 if (problems.size() > 0) {
-                    logger.info(
+                    logger.error(
                             "Found these problems updating the properties for {}: {}",
                             path, problems);
                     return status(FORBIDDEN).entity(problems.toString())
@@ -279,7 +279,7 @@ public class FedoraNodes extends AbstractResource {
 
     /**
      * Creates a new object.
-     * 
+     *
      * @param pathList
      * @return 201
      * @throws RepositoryException
@@ -335,7 +335,7 @@ public class FedoraNodes extends AbstractResource {
 
     /**
      * Deletes an object.
-     * 
+     *
      * @param path
      * @return
      * @throws RepositoryException

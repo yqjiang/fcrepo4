@@ -19,6 +19,7 @@ package org.fcrepo;
 import static com.hp.hpl.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.fcrepo.FedoraResource.DEFAULT_SUBJECT_FACTORY;
 import static org.fcrepo.FedoraResource.hasMixin;
+import static org.fcrepo.rdf.ExtractionUtils.getExtractorsForMixin;
 import static org.fcrepo.utils.FedoraJcrTypes.FEDORA_RESOURCE;
 import static org.fcrepo.utils.FedoraJcrTypes.JCR_CREATED;
 import static org.fcrepo.utils.FedoraJcrTypes.JCR_LASTMODIFIED;
@@ -32,6 +33,8 @@ import static org.fcrepo.utils.JcrRdfTools.getProblemsModel;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -40,8 +43,10 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import static org.modeshape.jcr.api.JcrConstants.JCR_CONTENT;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -51,7 +56,10 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
+import org.fcrepo.rdf.ExtractionUtils;
+import org.fcrepo.rdf.GraphProperties;
 import org.fcrepo.rdf.GraphSubjects;
+import org.fcrepo.rdf.impl.JcrGraphProperties;
 import org.fcrepo.utils.FedoraTypesUtils;
 import org.fcrepo.utils.JcrRdfTools;
 import org.fcrepo.utils.NamespaceTools;
@@ -70,7 +78,7 @@ import com.hp.hpl.jena.sparql.util.Symbol;
 
 @RunWith(PowerMockRunner.class)
 //PowerMock needs to ignore some packages to prevent class-cast errors
-//PowerMock needs to ignore unnecessary packages to keep from running out of heap 
+//PowerMock needs to ignore unnecessary packages to keep from running out of heap
 @PowerMockIgnore({
   "org.slf4j.*",
   "org.apache.xerces.*",
@@ -82,7 +90,7 @@ import com.hp.hpl.jena.sparql.util.Symbol;
   "com.codahale.metrics.*"
   })
 @PrepareForTest({NamespaceTools.class, JcrRdfTools.class,
-        FedoraTypesUtils.class})
+        FedoraTypesUtils.class, ExtractionUtils.class})
 public class FedoraResourceTest {
 
     private FedoraResource testObj;
@@ -99,9 +107,24 @@ public class FedoraResourceTest {
     @Mock
     private Property mockProp;
 
+    @Mock
+    private NodeType mockNodeType;
+
+    private List<GraphProperties> extractor = new ArrayList<GraphProperties>() {
+
+        private static final long serialVersionUID = 1L;
+
+        {
+            add(new JcrGraphProperties());
+        }
+    };
+
     @Before
-    public void setUp() {
+    public void setUp() throws RepositoryException {
         initMocks(this);
+        when(mockNodeType.getName()).thenReturn(FEDORA_RESOURCE);
+        when(mockNode.getMixinNodeTypes()).thenReturn(
+                new NodeType[] {mockNodeType});
         testObj = new FedoraResource(mockNode);
         assertEquals(mockNode, testObj.getNode());
     }
@@ -201,11 +224,12 @@ public class FedoraResourceTest {
     @Test
     public void testGetPropertiesDataset() throws RepositoryException {
 
-        mockStatic(JcrRdfTools.class);
+        mockStatic(JcrRdfTools.class, ExtractionUtils.class);
+        when(getExtractorsForMixin(any(Session.class), anyString())).thenReturn(
+        extractor);
         final GraphSubjects mockSubjects = mock(GraphSubjects.class);
         final Resource mockResource = new DummyURIResource("info:fedora/xyz");
         when(getGraphSubject(mockSubjects, mockNode)).thenReturn(mockResource);
-
         final Model propertiesModel = createDefaultModel();
         when(getJcrPropertiesModel(mockSubjects, mockNode)).thenReturn(
                 propertiesModel);
@@ -229,7 +253,9 @@ public class FedoraResourceTest {
     public void testGetPropertiesDatasetDefaultLimits()
             throws RepositoryException {
 
-        mockStatic(JcrRdfTools.class);
+        mockStatic(JcrRdfTools.class, ExtractionUtils.class);
+        when(getExtractorsForMixin(any(Session.class), anyString())).thenReturn(
+        extractor);
         final GraphSubjects mockSubjects = mock(GraphSubjects.class);
         final Resource mockResource = new DummyURIResource("info:fedora/xyz");
         when(getGraphSubject(mockSubjects, mockNode)).thenReturn(mockResource);
@@ -255,7 +281,9 @@ public class FedoraResourceTest {
     @Test
     public void testGetPropertiesDatasetDefaults() throws RepositoryException {
 
-        mockStatic(JcrRdfTools.class);
+        mockStatic(JcrRdfTools.class, ExtractionUtils.class);
+        when(getExtractorsForMixin(any(Session.class), anyString())).thenReturn(
+        extractor);
         final Resource mockResource = new DummyURIResource("info:fedora/xyz");
         when(getGraphSubject(DEFAULT_SUBJECT_FACTORY, mockNode)).thenReturn(
                 mockResource);

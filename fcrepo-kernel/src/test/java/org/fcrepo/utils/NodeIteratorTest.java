@@ -23,13 +23,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import java.util.Iterator;
+
 import javax.jcr.Node;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-public class NodeIteratortest {
+public class NodeIteratorTest {
 
     @Mock
     javax.jcr.NodeIterator i;
@@ -67,7 +69,16 @@ public class NodeIteratortest {
 
     @Test
     public void testIterator() {
-        assertEquals(testIterator, testIterator.iterator());
+        assertEquals("iterator() doesn't work as expected!", testIterator,
+                testIterator.iterator());
     }
+
+    @Test
+    public void testIteratorStatic() {
+        assertTrue("Static factory method doesn't work as expected!",
+                Iterator.class.isAssignableFrom(NodeIterator.iterator(i)
+                        .getClass()));
+    }
+
 
 }
