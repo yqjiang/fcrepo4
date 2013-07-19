@@ -59,13 +59,16 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 
+import com.hp.hpl.jena.datatypes.xsd.XSDDatatype;
 import org.fcrepo.RdfLexicon;
 import org.fcrepo.rdf.GraphSubjects;
 import org.fcrepo.services.LowLevelStorageService;
@@ -803,6 +806,129 @@ public abstract class JcrRdfTools {
                     createTypedLiteral(result.computedSize));
         }
         return model;
+    }
+
+    public static Model getJcrPropertiesModel(final GraphSubjects factory, final Session session, final NodeTypeManager nodeTypeManager) throws RepositoryException {
+        final Model model = createDefaultJcrModel(session);
+
+        final NodeTypeIterator primaryNodeTypes = nodeTypeManager.getPrimaryNodeTypes();
+
+        while (primaryNodeTypes.hasNext()) {
+            NodeType t = primaryNodeTypes.nextNodeType();
+            addJcrPropertiesToModel(factory, model, session, t);
+        }
+
+        final NodeTypeIterator mixinNodeTypes = nodeTypeManager.getMixinNodeTypes();
+
+        while (mixinNodeTypes.hasNext()) {
+            NodeType t = mixinNodeTypes.nextNodeType();
+            addJcrPropertiesToModel(factory, model, session, t);
+        }
+
+        return model;
+
+    }
+
+    public static Model getJcrPropertiesModel(final GraphSubjects factory, final Session session, final NodeType nodeType) throws RepositoryException {
+        final Model model = createDefaultJcrModel(session);
+
+        addJcrPropertiesToModel(factory, model, session, nodeType);
+
+        return model;
+   }
+
+    public static void addJcrPropertiesToModel(final GraphSubjects factory, final Model model, final Session session, final NodeType nodeType) throws RepositoryException {
+
+        final Resource nodeTypeResource = model.createResource("#" + nodeType.getName());
+        final com.hp.hpl.jena.rdf.model.Property rdfType = model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+        final com.hp.hpl.jena.rdf.model.Property rdfsRange = model.createProperty("http://www.w3.org/2000/01/rdf-schema#range");
+        final com.hp.hpl.jena.rdf.model.Property rdfsDomain = model.createProperty("http://www.w3.org/2000/01/rdf-schema#domain");
+        final com.hp.hpl.jena.rdf.model.Property isDefinedBy = model.createProperty("http://www.w3.org/2000/01/rdf-schema#isDefinedBy");
+        final com.hp.hpl.jena.rdf.model.Property rdfsLabel = model.createProperty("http://www.w3.org/2000/01/rdf-schema#label");
+        final com.hp.hpl.jena.rdf.model.Property rdfsSubClassOf = model.createProperty("http://www.w3.org/2000/01/rdf-schema#subClassOf");
+
+        model.add(nodeTypeResource, rdfType, model.createResource("http://www.w3.org/2000/01/rdf-schema#Class"));
+        model.add(nodeTypeResource, isDefinedBy, factory.getGraphSubject(session, "/"));
+        model.add(nodeTypeResource, rdfsLabel, nodeType.getName());
+
+        for (NodeType type : nodeType.getDeclaredSupertypes()) {
+            model.add(nodeTypeResource, rdfsSubClassOf, model.createResource("#" + type.getName()));
+        }
+
+        for (NodeDefinition nodeDefinition : nodeType.getDeclaredChildNodeDefinitions()) {
+            final Resource propertyDefinitionResource = model.createResource("#" + nodeType.getName() + "-" + nodeDefinition.getName());
+            model.add(propertyDefinitionResource, rdfType, model.createResource("http://www.w3.org/2000/01/rdf-schema#Property"));
+            model.add(propertyDefinitionResource, rdfsDomain, nodeTypeResource);
+            model.add(propertyDefinitionResource, isDefinedBy, factory.getGraphSubject(session, "/"));
+            model.add(propertyDefinitionResource, rdfsLabel, nodeDefinition.getName());
+
+            final NodeType[] requiredPrimaryTypes = nodeDefinition.getRequiredPrimaryTypes();
+
+            switch (requiredPrimaryTypes.length) {
+                case 0:
+                    // no-op
+                    break;
+                case 1:
+                    model.add(propertyDefinitionResource, rdfsRange, model.createResource("#" + requiredPrimaryTypes[0].getName()));
+                    break;
+                default:
+                    final Resource resource = model.createResource();
+
+                    model.add(propertyDefinitionResource, rdfsRange, resource);
+
+                    model.add(resource, rdfType, model.createResource("http://www.w3.org/2002/07/owl#Class"));
+                    final com.hp.hpl.jena.rdf.model.Property unionOf = model.createProperty("http://www.w3.org/2002/07/owl#unionOf");
+
+                    for (NodeType requiredPrimaryType : requiredPrimaryTypes) {
+                        model.add(resource, unionOf, model.createResource("#" + requiredPrimaryType.getName()));
+                    }
+
+
+                    break;
+            }
+
+        }
+
+
+        for (PropertyDefinition propertyDefinition : nodeType.getDeclaredPropertyDefinitions()) {
+
+            final Resource propertyDefinitionResource = model.createResource("#" + nodeType.getName() + "-" + propertyDefinition.getName());
+            model.add(propertyDefinitionResource, rdfType, model.createResource("http://www.w3.org/2000/01/rdf-schema#Property"));
+            model.add(propertyDefinitionResource, rdfsDomain, nodeTypeResource);
+            model.add(propertyDefinitionResource, isDefinedBy, factory.getGraphSubject(session, "/"));
+            model.add(propertyDefinitionResource, rdfsLabel, propertyDefinition.getName());
+
+            final int requiredType = propertyDefinition.getRequiredType();
+
+            switch (requiredType) {
+                case BOOLEAN:
+                    model.add(propertyDefinitionResource, rdfsRange, model.createResource(XSDDatatype.XSDboolean.getURI()));
+                    break;
+                case DATE:
+                    model.add(propertyDefinitionResource, rdfsRange, model.createResource(XSDDatatype.XSDdate.getURI()));
+                    break;
+                case DECIMAL:
+                    model.add(propertyDefinitionResource, rdfsRange, model.createResource(XSDDatatype.XSDdecimal.getURI()));
+                    break;
+                case DOUBLE:
+                    model.add(propertyDefinitionResource, rdfsRange, model.createResource(XSDDatatype.XSDdecimal.getURI()));
+                    break;
+                case LONG:
+                    model.add(propertyDefinitionResource, rdfsRange, model.createResource(XSDDatatype.XSDlong.getURI()));
+                    break;
+                case URI:
+                case REFERENCE:
+                case WEAKREFERENCE:
+                case PATH:
+                    model.add(propertyDefinitionResource, rdfsRange, model.createResource(XSDDatatype.XSDanyURI.getURI()));
+                    break;
+
+                default:
+                    model.add(propertyDefinitionResource, rdfsRange, model.createResource(XSDDatatype.XSDstring.getURI()));
+            }
+
+        }
+
     }
 
     /**
