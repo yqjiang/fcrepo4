@@ -61,6 +61,9 @@ public class LegacyMethodEventFactory implements JMSEventMessageFactory {
         LOGGER.debug("Constructed serialized Atom message from event.");
         final TextMessage tm = jmsSession.createTextMessage(atomMessage);
         final String pid = legacy.getPid();
+        if (path != null) {
+            tm.setStringProperty("path", path);
+        }
         if (pid != null) {
             tm.setStringProperty("pid", pid);
         }
